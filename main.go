@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"runtime"
-	"unsafe"
-
 	"syscall"
+	"unsafe"
 
 	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/nullboundary/glfont"
 )
 
 var u32dll, _ = syscall.LoadLibrary("user32.dll")
@@ -42,23 +43,36 @@ func init() {
 }
 
 func main() {
-	err := glfw.Init()
-	if err != nil {
-		panic(err)
+	if err := glfw.Init(); err != nil {
+		log.Fatalln("failed to initialize glfw:", err)
 	}
-
 	defer glfw.Terminate()
 
 	mode := glfw.GetPrimaryMonitor().GetVideoMode()
 
+	glfw.WindowHint(glfw.Resizable, glfw.True)
+	glfw.WindowHint(glfw.ContextVersionMajor, 3)
+	glfw.WindowHint(glfw.ContextVersionMinor, 2)
+	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+
+	glfw.WindowHint(glfw.TransparentFramebuffer, glfw.True)
+	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 	glfw.WindowHint(glfw.Floating, glfw.True)
 	glfw.WindowHint(glfw.Visible, glfw.False)
-	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 
 	window, err := glfw.CreateWindow(mode.Width, mode.Height, "Testing", nil, nil)
 	if err != nil {
 		panic(err)
 	}
+
+	monitorX, monitorY := glfw.GetPrimaryMonitor().GetPos()
+	window.SetPos(monitorX, monitorY)
+
+	window.SetAttrib(glfw.Resizable, glfw.False)
+	window.SetAttrib(glfw.Decorated, glfw.False)
+	window.MakeContextCurrent()
+	glfw.SwapInterval(1)
 
 	if err := gl.Init(); err != nil {
 		panic(err)
@@ -68,13 +82,10 @@ func main() {
 	gl.DepthFunc(gl.LESS)
 	gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 
-	monitorX, monitorY := glfw.GetPrimaryMonitor().GetPos()
-	window.SetPos(monitorX, monitorY)
-
-	window.SetAttrib(glfw.Resizable, glfw.True)
-	window.SetAttrib(glfw.Decorated, glfw.False)
-	window.MakeContextCurrent()
-	glfw.SwapInterval(1)
+	font, err := glfont.LoadFont("Roboto-Light.ttf", int32(52), mode.Width, mode.Height)
+	if err != nil {
+		log.Panicf("LoadFont: %v", err)
+	}
 
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LESS)
@@ -89,17 +100,20 @@ func main() {
 	syscall.SyscallN(SetWindowLongPtrW, uintptr(unsafe.Pointer(hwnd)), uintptr(GWL_EXSTYLE), uintptr(WS_EX_TOOLWINDOW))
 	syscall.SyscallN(ShowWindow, uintptr(unsafe.Pointer(hwnd)), uintptr(syscall.SW_SHOW))
 
-	window.SetOpacity(0.8)
+	window.SetOpacity(0.5)
 
 	RegisterGlobalHotkey(VK_F4, MOD_ALT|MOD_NOREPEAT, window)
 	defer UnregisterGlobalHotkeys()
-	// fmt.Scanln()
 
 	window.SetKeyCallback(KeyCallback)
 
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		// Do OpenGL stuff.
+		gl.ClearColor(0, 0, 0, 0)
+
+		font.SetColor(1.0, 1.0, 1.0, 1.0)                                       //r,g,b,a font color
+		font.Printf(float32(mode.Width)/2, float32(mode.Height)/2, 1.0, "Hkar") //x,y,scale,string,printf args
+
 		window.SwapBuffers()
 		glfw.PollEvents()
 	}
@@ -116,13 +130,16 @@ func KeyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 
 func RegisterGlobalHotkey(key uint, mod uint, window *glfw.Window) {
 	hotKeyId++
-	_1, _2, err := syscall.SyscallN(RegisterHotkey, uintptr(unsafe.Pointer(nil)), uintptr(hotKeyId), uintptr(mod), uintptr(int16(key)))
-	fmt.Println(_1, _2, err)
-	fmt.Println(hotKeyId)
+	_, _, err := syscall.SyscallN(RegisterHotkey, uintptr(unsafe.Pointer(nil)), uintptr(hotKeyId), uintptr(mod), uintptr(int16(key)))
+	fmt.Println(err)
 }
 
 func UnregisterGlobalHotkeys() {
 	for i := 1; i < hotKeyId; i++ {
 		syscall.SyscallN(UnregisterHotkey, uintptr(i))
 	}
+}
+
+func PollHotkey() {
+
 }
