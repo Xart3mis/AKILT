@@ -40,8 +40,8 @@ var TOPMOST_FLAGS int = SWP_NOMOVE | SWP_NOSIZE
 var SW_HIDE int = 0
 var GWL_EXSTYLE int = -20
 var WS_EX_TOOLWINDOW uint = 0x00000080
-var WS_EX_LAYERED uint = 0x00080000
-var WS_EX_TRANSPARENT uint = 0x00000020
+var WS_EX_LAYERED uint = 0x80000
+var WS_EX_TRANSPARENT uint = 0x20
 
 var hotKeyId int = 0
 
