@@ -100,7 +100,7 @@ func main() {
 	syscall.SyscallN(SetWindowLongPtrW, uintptr(unsafe.Pointer(hwnd)), uintptr(GWL_EXSTYLE), uintptr(WS_EX_TOOLWINDOW))
 	syscall.SyscallN(ShowWindow, uintptr(unsafe.Pointer(hwnd)), uintptr(syscall.SW_SHOW))
 
-	window.SetOpacity(0.5)
+	window.SetOpacity(1.0)
 
 	RegisterGlobalHotkey(VK_F4, MOD_ALT|MOD_NOREPEAT, window)
 	defer UnregisterGlobalHotkeys()
@@ -111,8 +111,8 @@ func main() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 		gl.ClearColor(0, 0, 0, 0)
 
-		font.SetColor(1.0, 1.0, 1.0, 1.0)                                       //r,g,b,a font color
-		font.Printf(float32(mode.Width)/2, float32(mode.Height)/2, 1.0, "Hkar") //x,y,scale,string,printf args
+		font.SetColor(1.0, 1.0, 1.0, 1.0)                                                                 //r,g,b,a font color
+		font.Printf(float32(mode.Width)/2-font.Width(1.0, "Hkar")/2, float32(mode.Height)/2, 1.0, "Hkar") //x,y,scale,string,printf args
 
 		window.SwapBuffers()
 		glfw.PollEvents()
