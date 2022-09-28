@@ -7,6 +7,7 @@ import (
 
 	"syscall"
 
+	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
@@ -59,16 +60,27 @@ func main() {
 		panic(err)
 	}
 
-	monitorX, monitorY := glfw.GetPrimaryMonitor().GetPos()
+	if err := gl.Init(); err != nil {
+		panic(err)
+	}
 
+	gl.Enable(gl.DEPTH_TEST)
+	gl.DepthFunc(gl.LESS)
+	gl.ClearColor(0.0, 0.0, 0.0, 0.0)
+
+	monitorX, monitorY := glfw.GetPrimaryMonitor().GetPos()
 	window.SetPos(monitorX, monitorY)
 
 	window.SetAttrib(glfw.Resizable, glfw.True)
 	window.SetAttrib(glfw.Decorated, glfw.False)
 	window.MakeContextCurrent()
+	glfw.SwapInterval(1)
+
+	gl.Enable(gl.DEPTH_TEST)
+	gl.DepthFunc(gl.LESS)
+	gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 
 	hwnd := window.GetWin32Window()
-	glfw.GetCurrentContext()
 	window.Show()
 
 	syscall.SyscallN(SetWindowPos, uintptr(unsafe.Pointer(hwnd)), uintptr(HWND_TOPMOST), 0, 0, 0, 0, uintptr(TOPMOST_FLAGS))
@@ -86,7 +98,7 @@ func main() {
 	window.SetKeyCallback(KeyCallback)
 
 	for !window.ShouldClose() {
-
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 		// Do OpenGL stuff.
 		window.SwapBuffers()
 		glfw.PollEvents()
