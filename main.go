@@ -3,8 +3,13 @@ package main
 //TODO: REFACTOR EVERYTHING
 
 import (
+	"bytes"
 	_ "embed"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -16,6 +21,14 @@ import (
 	"github.com/nullboundary/glfont"
 	"golang.design/x/hotkey"
 )
+
+type ClientData struct {
+	OnScreenText string
+}
+
+type ClientProductId struct {
+	ProductId string `json:"ProductId"`
+}
 
 var u32dll, _ = syscall.LoadLibrary("user32.dll")
 var ShowWindow, _ = syscall.GetProcAddress(u32dll, "ShowWindow")
@@ -32,6 +45,8 @@ var GWL_EXSTYLE int = -20
 var WS_EX_TOOLWINDOW uint = 0x00000080
 var WS_EX_LAYERED uint = 0x80000
 var WS_EX_TRANSPARENT uint = 0x20
+
+var clients map[string]ClientData = make(map[string]ClientData)
 
 func init() {
 	runtime.LockOSThread()
@@ -113,20 +128,43 @@ func main() {
 	window.SetOpacity(0.8)
 	window.SetCloseCallback(CloseCallback)
 
-	text := ".. .. .. .. .."
-
-	reg.GetUniqueSystemId()
+	pid := ClientProductId{ProductId: reg.GetUniqueSystemId()}
+	data, _ := json.Marshal(pid)
 
 	for !window.ShouldClose() {
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		gl.ClearColor(0, 0, 0, 0)
+		resp, err := http.Post("http://localhost:5050/SetProductId", "application/json", bytes.NewBuffer(data))
+		if err != nil {
+			log.Println(err)
+			Draw(font, mode, pid, window)
+			continue
+		}
 
-		font.SetColor(1.0, 1.0, 1.0, 1.0)
-		font.Printf(float32(mode.Width)/2-font.Width(1.0, text)/2, float32(mode.Height)/2, 1.0, text)
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			print(err)
+		}
 
-		window.SwapBuffers()
-		glfw.PollEvents()
+		fmt.Println(string(body))
+		err = json.Unmarshal(body, &clients)
+		if err != nil {
+			panic(err)
+		}
+
+		Draw(font, mode, pid, window)
 	}
+}
+
+func Draw(font *glfont.Font, mode *glfw.VidMode, pid ClientProductId, window *glfw.Window) {
+
+	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	gl.ClearColor(0, 0, 0, 0)
+
+	font.SetColor(1.0, 1.0, 1.0, 1.0)
+	font.Printf(float32(mode.Width)/2-font.Width(1.0, clients[pid.ProductId].OnScreenText)/2, float32(mode.Height)/2, 1.0, clients[pid.ProductId].OnScreenText)
+
+	window.SwapBuffers()
+	glfw.PollEvents()
 }
 
 func CloseCallback(w *glfw.Window) {
