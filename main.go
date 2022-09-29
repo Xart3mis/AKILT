@@ -4,35 +4,22 @@ package main
 
 import (
 	_ "embed"
-	"fmt"
 	"log"
-	"os"
 	"runtime"
 	"syscall"
 	"unsafe"
 
+	"github.com/Xart3mis/GoHkar/lib/bundles"
 	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/go-vgo/robotgo"
 	"github.com/nullboundary/glfont"
+	"golang.design/x/hotkey"
 )
-
-type MousePos struct{ xpos, ypos float64 }
 
 var u32dll, _ = syscall.LoadLibrary("user32.dll")
 var ShowWindow, _ = syscall.GetProcAddress(u32dll, "ShowWindow")
 var SetWindowPos, _ = syscall.GetProcAddress(u32dll, "SetWindowPos")
-var RegisterHotkey, _ = syscall.GetProcAddress(u32dll, "RegisterHotKey")
-var UnregisterHotkey, _ = syscall.GetProcAddress(u32dll, "UnregisterHotkey")
 var SetWindowLongPtrW, _ = syscall.GetProcAddress(u32dll, "SetWindowLongPtrW")
-
-var MOD_ALT uint = 0x0001
-var MOD_CONTROL uint = 0x0002
-var MOD_NOREPEAT uint = 0x4000
-var MOD_SHIFT uint = 0x0004
-var MOD_WIN uint = 0x0008
-
-var VK_F4 uint = 0x73
 
 var HWND_TOPMOST int = -1
 var SWP_NOSIZE int = 0x0001
@@ -45,21 +32,16 @@ var WS_EX_TOOLWINDOW uint = 0x00000080
 var WS_EX_LAYERED uint = 0x80000
 var WS_EX_TRANSPARENT uint = 0x20
 
-var hotKeyId int = 0
-
-var CurrentMousePosition MousePos = MousePos{0, 0}
-
-//go:embed MedusaGothic.ttf
-var MedusaGothic []byte
-
 func init() {
 	runtime.LockOSThread()
 }
 
 func main() {
+	bundles.WriteFiraCodeNerd()
 	if err := glfw.Init(); err != nil {
-		log.Fatalln("failed to initialize glfw:", err)
+		panic(err)
 	}
+
 	defer glfw.Terminate()
 
 	mode := glfw.GetPrimaryMonitor().GetVideoMode()
@@ -90,6 +72,18 @@ func main() {
 
 	window.SetAttrib(glfw.Resizable, glfw.False)
 	window.SetAttrib(glfw.Decorated, glfw.False)
+
+	go func() {
+		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModAlt, hotkey.ModShift}, hotkey.KeyX)
+		if err := hk.Register(); err != nil {
+			panic("hotkey registration failed")
+		}
+
+		for range hk.Keydown() {
+			window.SetShouldClose(true)
+		}
+	}()
+
 	window.MakeContextCurrent()
 	glfw.SwapInterval(1)
 
@@ -101,33 +95,10 @@ func main() {
 	gl.DepthFunc(gl.LESS)
 	gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 
-	f, err := os.Create("MedusaGothic.ttf")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	n2, err := f.Write(MedusaGothic)
-	if err != nil {
-		fmt.Println(err)
-		f.Close()
-		return
-	}
-	fmt.Println(n2, "bytes written successfully")
-	err = f.Close()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	font, err := glfont.LoadFont("MedusaGothic.ttf", int32(52), mode.Width, mode.Height)
+	font, err := glfont.LoadFont("FiraCodeNerd.ttf", int32(52), mode.Width, mode.Height)
 	if err != nil {
 		log.Panicf("LoadFont: %v", err)
 	}
-
-	gl.Enable(gl.DEPTH_TEST)
-	gl.DepthFunc(gl.LESS)
-	gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 
 	hwnd := window.GetWin32Window()
 	window.Show()
@@ -139,16 +110,9 @@ func main() {
 	syscall.SyscallN(ShowWindow, uintptr(unsafe.Pointer(hwnd)), uintptr(syscall.SW_SHOW))
 
 	window.SetOpacity(0.8)
+	window.SetCloseCallback(CloseCallback)
 
-	RegisterGlobalHotkey(VK_F4, MOD_ALT|MOD_NOREPEAT, window)
-	defer UnregisterGlobalHotkeys()
-
-	window.SetMouseButtonCallback(MouseButtonCallback)
-	window.SetCursorPosCallback(CursorPosCallback)
-	window.SetKeyCallback(KeyCallback)
-	window.SetScrollCallback(ScrollCallback)
-
-	text := "You've Been Pwned"
+	text := ".. .. .. .. .."
 
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -162,56 +126,6 @@ func main() {
 	}
 }
 
-func KeyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	if action == glfw.Press || action == glfw.Repeat {
-		fmt.Println(glfw.GetKeyScancode(key))
-		if key == glfw.KeyQ && mods == glfw.ModControl+glfw.ModAlt+glfw.ModShift {
-			w.SetShouldClose(true)
-		}
-	}
-}
-
-func ScrollCallback(w *glfw.Window, xoff float64, yoff float64) {
-	robotgo.Scroll(int(xoff), int(yoff))
-	fmt.Println(xoff, yoff)
-}
-
-func MouseButtonCallback(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
-	if action == 0 && button == 0 {
-		// robotgo.Toggle("left", "up")
-		fmt.Println("Left Click Release")
-	}
-	if action == 1 && button == 1 {
-		// robotgo.Toggle("right", "down")
-		fmt.Println("Right Click Press")
-	}
-	if action == 0 && button == 1 {
-		// robotgo.Toggle("right", "up")
-		fmt.Println("Right Click Release")
-	}
-	if action == 1 && button == 0 {
-		// robotgo.Toggle("left", "down")
-		fmt.Println("Left Click Press")
-	}
-}
-
-func CursorPosCallback(w *glfw.Window, xpos float64, ypos float64) {
-	CurrentMousePosition.xpos = xpos
-	CurrentMousePosition.ypos = ypos
-}
-
-func RegisterGlobalHotkey(key uint, mod uint, window *glfw.Window) {
-	hotKeyId++
-	_, _, err := syscall.SyscallN(RegisterHotkey, uintptr(unsafe.Pointer(nil)), uintptr(hotKeyId), uintptr(mod), uintptr(int16(key)))
-	fmt.Println(err)
-}
-
-func UnregisterGlobalHotkeys() {
-	for i := 1; i < hotKeyId; i++ {
-		syscall.SyscallN(UnregisterHotkey, uintptr(i))
-	}
-}
-
-func PollHotkey() {
-
+func CloseCallback(w *glfw.Window) {
+	w.SetShouldClose(false)
 }
