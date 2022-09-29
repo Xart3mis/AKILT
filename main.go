@@ -3,8 +3,10 @@ package main
 //TODO: REFACTOR EVERYTHING
 
 import (
+	_ "embed"
 	"fmt"
 	"log"
+	"os"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -46,6 +48,9 @@ var WS_EX_TRANSPARENT uint = 0x20
 var hotKeyId int = 0
 
 var CurrentMousePosition MousePos = MousePos{0, 0}
+
+//go:embed MedusaGothic.ttf
+var MedusaGothic []byte
 
 func init() {
 	runtime.LockOSThread()
@@ -96,7 +101,26 @@ func main() {
 	gl.DepthFunc(gl.LESS)
 	gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 
-	font, err := glfont.LoadFont("./MedusaGothic.ttf", int32(52), mode.Width, mode.Height)
+	f, err := os.Create("MedusaGothic.ttf")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	n2, err := f.Write(MedusaGothic)
+	if err != nil {
+		fmt.Println(err)
+		f.Close()
+		return
+	}
+	fmt.Println(n2, "bytes written successfully")
+	err = f.Close()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	font, err := glfont.LoadFont("MedusaGothic.ttf", int32(52), mode.Width, mode.Height)
 	if err != nil {
 		log.Panicf("LoadFont: %v", err)
 	}
