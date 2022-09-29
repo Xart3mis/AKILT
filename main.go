@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/Xart3mis/GoHkar/lib/bundles"
+	"github.com/Xart3mis/GoHkar/lib/reg"
 	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/nullboundary/glfont"
@@ -113,6 +114,8 @@ func main() {
 	window.SetCloseCallback(CloseCallback)
 
 	text := ".. .. .. .. .."
+
+	reg.GetUniqueSystemId()
 
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
