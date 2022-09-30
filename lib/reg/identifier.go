@@ -8,16 +8,16 @@ import (
 )
 
 func GetUniqueSystemId() string {
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows NT\CurrentVersion`, registry.QUERY_VALUE)
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Cryptography`, registry.QUERY_VALUE)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer k.Close()
 
-	s, _, err := k.GetStringValue("ProductId")
+	s, _, err := k.GetStringValue("MachineGuid")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Windows SystemId = %q\n", s)
+	fmt.Printf("Windows MachineGuid = %q\n", s)
 	return s
 }
