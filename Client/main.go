@@ -195,8 +195,8 @@ func Draw(font *glfont.Font, mode *glfw.VidMode, pid string, text string, window
 
 	if update {
 		font.SetColor(1.0, 1.0, 1.0, 1.0)
-		for idx, line := range strings.Split(WordWrap(text, 35), "\n") {
-			font.Printf(float32(mode.Width)/2-font.Width(1.0, line)/2, float32(mode.Height)/3+float32(idx*40), 1.0, line)
+		for idx, line := range strings.Split(WordWrap(text, 40), "\n") {
+			font.Printf(float32(mode.Width)/2-font.Width(1.0, line)/2, float32(mode.Height)/3+float32(idx*50), 1.0, line)
 		}
 	}
 
