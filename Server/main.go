@@ -1,27 +1,22 @@
-//TODO: GUI for this
-//TODO: protocol buffers + gRPC
-
 package main
 
 import (
 	"bufio"
-	"encoding/json"
-	"fmt"
-	"net/http"
+	"log"
+	"net"
 	"os"
+
+	pb "github.com/Xart3mis/GoHkarComms/client_data_pb"
+
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
-type ClientData struct {
-	ShouldUpdate bool   `json:"ClientShouldUpdate"`
-	OnScreenText string `json:"ClientOnScreenText"`
+type server struct {
+	pb.ClientServer
 }
 
-type ClientProductId struct {
-	ProductId string `json:"ProductId"`
-}
-
-var clients map[string]ClientData = make(map[string]ClientData)
-var on_screen_text string
+var on_screen_text string = ""
 
 func main() {
 	go func() {
@@ -34,35 +29,26 @@ func main() {
 		}
 	}()
 
-	// handle route using handler function
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			SetProductId(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
+	s := grpc.NewServer()
+	lis, err := net.Listen("tcp", ":8000")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+	pb.RegisterClientServer(s, &server{})
 
-	})
+	err = s.Serve(lis)
+	if err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
 
-	// listen to port
-	http.ListenAndServe(":5050", nil)
 }
 
-func SetProductId(w http.ResponseWriter, req *http.Request) {
-	var pid ClientProductId
-
-	if err := json.NewDecoder(req.Body).Decode(&pid); err != nil {
-		w.WriteHeader(400)
-		fmt.Fprint(w, "Invalid Product Id")
-		return
-	}
-
-	should_update := len(on_screen_text) > 0
-	clients[pid.ProductId] = ClientData{ShouldUpdate: should_update, OnScreenText: on_screen_text}
-	client_json, err := json.Marshal(clients)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Fprint(w, string(client_json))
+func (s *server) GetOnScreenText(ctx context.Context, in *pb.ClientDataRequest) (*pb.ClientDataResponse, error) {
+	return &pb.ClientDataResponse{ClientData: map[string]*pb.ClientData{
+		in.ClientId: {
+			OnScreenText: on_screen_text,
+			ShouldUpdate: len(on_screen_text) > 0,
+		},
+	},
+	}, nil
 }

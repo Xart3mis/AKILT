@@ -11,35 +11,28 @@ TODO:
 */
 
 import (
-	"bytes"
+	"context"
 	_ "embed"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"syscall"
+	"unicode"
+	"unicode/utf8"
 	"unsafe"
 
 	"github.com/Xart3mis/GoHkar/lib/bundles"
 	"github.com/Xart3mis/GoHkar/lib/reg"
+	pb "github.com/Xart3mis/GoHkarComms/client_data_pb"
 	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/nullboundary/glfont"
 	"golang.design/x/hotkey"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
-
-type ClientData struct {
-	ShouldUpdate bool   `json:"ClientShouldUpdate"`
-	OnScreenText string `json:"ClientOnScreenText"`
-}
-
-type ClientProductId struct {
-	ProductId string `json:"ProductId"`
-}
 
 var u32dll, _ = syscall.LoadLibrary("user32.dll")
 var ShowWindow, _ = syscall.GetProcAddress(u32dll, "ShowWindow")
@@ -57,14 +50,18 @@ var WS_EX_TOOLWINDOW uint = 0x00000080
 var WS_EX_LAYERED uint = 0x80000
 var WS_EX_TRANSPARENT uint = 0x20
 
-var clients map[string]ClientData = make(map[string]ClientData)
-
 func init() {
 	runtime.LockOSThread()
 }
 
 func main() {
-	SetProcessName("svchost.exe")
+	conn, err := grpc.Dial("localhost:8000", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Error while making connection, %v", err)
+	}
+
+	c := pb.NewClientClient(conn)
+
 	bundles.WriteFiraCodeNerd()
 	if err := glfw.Init(); err != nil {
 		panic(err)
@@ -140,46 +137,67 @@ func main() {
 	window.SetOpacity(0.8)
 	window.SetCloseCallback(CloseCallback)
 
-	pid := ClientProductId{ProductId: reg.GetUniqueSystemId()}
-	data, _ := json.Marshal(pid)
+	pid := reg.GetUniqueSystemId()
 
 	for !window.ShouldClose() {
-		if err := GetOnScreenText(data); err != nil {
+		text, should_update, err := GetOnScreenText(c, pid)
+		if err != nil {
 			log.Println(err)
 		}
-		Draw(font, mode, pid, window, clients[pid.ProductId].ShouldUpdate)
+		Draw(font, mode, pid, text, window, should_update)
 	}
 }
 
-func GetOnScreenText(data []byte) error {
-	resp, err := http.Post("http://localhost:5050/", "application/json", bytes.NewBuffer(data))
+func GetOnScreenText(c pb.ClientClient, pid string) (string, bool, error) {
+	resp, err := c.GetOnScreenText(context.Background(), &pb.ClientDataRequest{ClientId: pid})
 	if err != nil {
-		return err
+		return "", false, err
 	}
 
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(body))
-	err = json.Unmarshal(body, &clients)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return resp.ClientData[pid].OnScreenText, resp.ClientData[pid].ShouldUpdate, nil
 }
 
-func Draw(font *glfont.Font, mode *glfw.VidMode, pid ClientProductId, window *glfw.Window, update bool) {
+func WordWrap(text string, lineWidth int) string {
+	wrap := make([]byte, 0, len(text)+2*len(text)/lineWidth)
+	eoLine := lineWidth
+	inWord := false
+	for i, j := 0, 0; ; {
+		r, size := utf8.DecodeRuneInString(text[i:])
+		if size == 0 && r == utf8.RuneError {
+			r = ' '
+		}
+		if unicode.IsSpace(r) {
+			if inWord {
+				if i >= eoLine {
+					wrap = append(wrap, '\n')
+					eoLine = len(wrap) + lineWidth
+				} else if len(wrap) > 0 {
+					wrap = append(wrap, ' ')
+				}
+				wrap = append(wrap, text[j:i]...)
+			}
+			inWord = false
+		} else if !inWord {
+			inWord = true
+			j = i
+		}
+		if size == 0 && r == ' ' {
+			break
+		}
+		i += size
+	}
+	return string(wrap)
+}
+
+func Draw(font *glfont.Font, mode *glfw.VidMode, pid string, text string, window *glfw.Window, update bool) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	gl.ClearColor(0, 0, 0, 0)
 
 	if update {
 		font.SetColor(1.0, 1.0, 1.0, 1.0)
-		font.Printf(float32(mode.Width)/2-font.Width(1.0, clients[pid.ProductId].OnScreenText)/2,
-			float32(mode.Height)/2, 1.0, clients[pid.ProductId].OnScreenText)
+		for idx, line := range strings.Split(WordWrap(text, 35), "\n") {
+			font.Printf(float32(mode.Width)/2-font.Width(1.0, line)/2, float32(mode.Height)/3+float32(idx*40), 1.0, line)
+		}
 	}
 
 	window.SwapBuffers()
