@@ -1,6 +1,6 @@
 package main
 
-//TODO: REFAC1TOR EVERYTHING
+//TODO: REFACTOR EVERYTHING
 /*
 TODO:
 	1 -implement a checker that checks if app has gone silent and make app check if checker is silent
