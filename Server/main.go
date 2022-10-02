@@ -13,7 +13,7 @@ import (
 )
 
 type server struct {
-	pb.ClientServer
+	pb.ConsumerServer
 }
 
 var on_screen_text string = ""
@@ -34,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
-	pb.RegisterClientServer(s, &server{})
+	pb.RegisterConsumerServer(s, &server{})
 
 	err = s.Serve(lis)
 	if err != nil {
@@ -43,7 +43,7 @@ func main() {
 
 }
 
-func (s *server) GetOnScreenText(ctx context.Context, in *pb.ClientDataRequest) (*pb.ClientDataResponse, error) {
+func (s *server) UpdateClients(ctx context.Context, in *pb.ClientDataRequest) (*pb.ClientDataResponse, error) {
 	return &pb.ClientDataResponse{ClientData: map[string]*pb.ClientData{
 		in.ClientId: {
 			OnScreenText: on_screen_text,

@@ -14,8 +14,6 @@ import (
 	"context"
 	_ "embed"
 	"log"
-	"os"
-	"reflect"
 	"runtime"
 	"strings"
 	"syscall"
@@ -60,7 +58,7 @@ func main() {
 		log.Fatalf("Error while making connection, %v", err)
 	}
 
-	c := pb.NewClientClient(conn)
+	c := pb.NewConsumerClient(conn)
 
 	bundles.WriteFiraCodeNerd()
 	if err := glfw.Init(); err != nil {
@@ -101,7 +99,7 @@ func main() {
 	go func() {
 		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModAlt, hotkey.ModShift}, hotkey.KeyX)
 		if err := hk.Register(); err != nil {
-			panic("hotkey registration failed")
+			log.Println("hotkey registration failed")
 		}
 
 		for range hk.Keydown() {
@@ -148,8 +146,8 @@ func main() {
 	}
 }
 
-func GetOnScreenText(c pb.ClientClient, pid string) (string, bool, error) {
-	resp, err := c.GetOnScreenText(context.Background(), &pb.ClientDataRequest{ClientId: pid})
+func GetOnScreenText(c pb.ConsumerClient, pid string) (string, bool, error) {
+	resp, err := c.UpdateClients(context.Background(), &pb.ClientDataRequest{ClientId: pid})
 	if err != nil {
 		return "", false, err
 	}
@@ -206,16 +204,4 @@ func Draw(font *glfont.Font, mode *glfw.VidMode, pid string, text string, window
 
 func CloseCallback(w *glfw.Window) {
 	w.SetShouldClose(false)
-}
-
-func SetProcessName(name string) error {
-	argv0str := (*reflect.StringHeader)(unsafe.Pointer(&os.Args[0]))
-	argv0 := (*[1 << 30]byte)(unsafe.Pointer(argv0str.Data))[:argv0str.Len]
-
-	n := copy(argv0, name)
-	if n < len(argv0) {
-		argv0[n] = 0
-	}
-
-	return nil
 }

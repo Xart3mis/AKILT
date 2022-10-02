@@ -3,7 +3,7 @@ module github.com/Xart3mis/GoHkar
 go 1.19
 
 require (
-	github.com/Xart3mis/GoHkarComms v0.0.0-20221002182400-98cff7256cd9
+	github.com/Xart3mis/GoHkarComms v0.0.0-20221002220235-ab7157831d7b
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220806181222-55e207c401ad
 	github.com/moutend/go-hook v0.1.0
@@ -19,6 +19,6 @@ require (
 	golang.org/x/image v0.0.0-20220902085622-e7cb96979f69 // indirect
 	golang.org/x/net v0.0.0-20221002022538-bcab6841153b // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/genproto v0.0.0-20220930163606-c98284e70a91 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 )
