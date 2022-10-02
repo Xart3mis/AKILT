@@ -144,7 +144,9 @@ func main() {
 	data, _ := json.Marshal(pid)
 
 	for !window.ShouldClose() {
-		GetOnScreenText(data)
+		if err := GetOnScreenText(data); err != nil {
+			log.Println(err)
+		}
 		Draw(font, mode, pid, window, clients[pid.ProductId].ShouldUpdate)
 	}
 }
