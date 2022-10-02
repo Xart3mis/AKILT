@@ -11,7 +11,6 @@ TODO:
 */
 
 import (
-	"context"
 	_ "embed"
 	"log"
 	"runtime"
@@ -22,14 +21,13 @@ import (
 	"unsafe"
 
 	"github.com/Xart3mis/GoHkar/lib/bundles"
+	"github.com/Xart3mis/GoHkar/lib/consumer"
 	"github.com/Xart3mis/GoHkar/lib/reg"
 	pb "github.com/Xart3mis/GoHkarComms/client_data_pb"
 	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/nullboundary/glfont"
 	"golang.design/x/hotkey"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var u32dll, _ = syscall.LoadLibrary("user32.dll")
@@ -53,13 +51,7 @@ func init() {
 }
 
 func main() {
-	conn, err := grpc.Dial("localhost:8000", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("Error while making connection, %v", err)
-	}
-
-	c := pb.NewConsumerClient(conn)
-
+	c := consumer.Init("localhost:8000")
 	bundles.WriteFiraCodeNerd()
 	if err := glfw.Init(); err != nil {
 		panic(err)
@@ -147,11 +139,10 @@ func main() {
 }
 
 func GetOnScreenText(c pb.ConsumerClient, pid string) (string, bool, error) {
-	resp, err := c.UpdateClients(context.Background(), &pb.ClientDataRequest{ClientId: pid})
+	resp, err := consumer.UpdateClients(c, pid)
 	if err != nil {
 		return "", false, err
 	}
-
 	return resp.ClientData[pid].OnScreenText, resp.ClientData[pid].ShouldUpdate, nil
 }
 
@@ -159,6 +150,7 @@ func WordWrap(text string, lineWidth int) string {
 	wrap := make([]byte, 0, len(text)+2*len(text)/lineWidth)
 	eoLine := lineWidth
 	inWord := false
+
 	for i, j := 0, 0; ; {
 		r, size := utf8.DecodeRuneInString(text[i:])
 		if size == 0 && r == utf8.RuneError {
@@ -184,6 +176,7 @@ func WordWrap(text string, lineWidth int) string {
 		}
 		i += size
 	}
+
 	return string(wrap)
 }
 
