@@ -51,8 +51,13 @@ func init() {
 }
 
 func main() {
-	c := consumer.Init("localhost:8000")
+	c, err := consumer.Init("localhost:8000")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	bundles.WriteFiraCodeNerd()
+
 	if err := glfw.Init(); err != nil {
 		panic(err)
 	}

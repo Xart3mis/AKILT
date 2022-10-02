@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"log"
 	"net"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type server struct {
@@ -29,11 +31,18 @@ func main() {
 		}
 	}()
 
-	s := grpc.NewServer()
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	s := grpc.NewServer(grpc.Creds(creds))
+
 	lis, err := net.Listen("tcp", ":8000")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
+
 	pb.RegisterConsumerServer(s, &server{})
 
 	err = s.Serve(lis)
@@ -41,6 +50,23 @@ func main() {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 
+}
+
+func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	// Load server's certificate and private key
+	serverCert, err := tls.LoadX509KeyPair("./../cert/server-cert.pem", "./../cert/server-key.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the credentials and return it
+	config := &tls.Config{
+		Certificates:       []tls.Certificate{serverCert},
+		ClientAuth:         tls.NoClientCert,
+		InsecureSkipVerify: true,
+	}
+
+	return credentials.NewTLS(config), nil
 }
 
 func (s *server) UpdateClients(ctx context.Context, in *pb.ClientDataRequest) (*pb.ClientDataResponse, error) {
