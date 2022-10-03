@@ -51,7 +51,7 @@ func init() {
 }
 
 func main() {
-	c, err := consumer.Init("localhost:8000")
+	c, err := consumer.Init("0.0.0.0:8000")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -144,11 +144,11 @@ func main() {
 }
 
 func GetOnScreenText(c pb.ConsumerClient, pid string) (string, bool, error) {
-	resp, err := consumer.UpdateClients(c, pid)
+	resp, err := consumer.GetOnScreenText(c, pid)
 	if err != nil {
 		return "", false, err
 	}
-	return resp.ClientData[pid].OnScreenText, resp.ClientData[pid].ShouldUpdate, nil
+	return resp.OnScreen.OnScreenText, resp.OnScreen.ShouldUpdate, nil
 }
 
 func WordWrap(text string, lineWidth int) string {

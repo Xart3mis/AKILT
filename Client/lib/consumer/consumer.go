@@ -52,8 +52,8 @@ func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	return credentials.NewTLS(config), nil
 }
 
-func UpdateClients(consumer pb.ConsumerClient, sys_id string) (*pb.ClientDataResponse, error) {
-	resp, err := consumer.UpdateClients(context.Background(), &pb.ClientDataRequest{ClientId: sys_id})
+func GetOnScreenText(consumer pb.ConsumerClient, sys_id string) (*pb.ClientDataOnScreenTextResponse, error) {
+	resp, err := consumer.GetOnScreenText(context.Background(), &pb.ClientDataRequest{ClientId: sys_id})
 	if err != nil {
 		return nil, err
 	}
