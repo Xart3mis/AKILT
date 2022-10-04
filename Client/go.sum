@@ -6,6 +6,10 @@ github.com/Xart3mis/GoHkarComms v0.0.0-20221002220235-ab7157831d7b h1:9JXCD9aUrH
 github.com/Xart3mis/GoHkarComms v0.0.0-20221002220235-ab7157831d7b/go.mod h1:WHoSBSG1MGn2RAvK0kcfMPPtdGh5lcH4na42qMXgHSQ=
 github.com/Xart3mis/GoHkarComms v0.0.0-20221003211608-08a5581c36f0 h1:kpCuuYRczE3dliEMk2pzEZIsgLcDYL70GcsTZNh/hYA=
 github.com/Xart3mis/GoHkarComms v0.0.0-20221003211608-08a5581c36f0/go.mod h1:+hVkKPV36sR5fNFSQ8sIyePu9DhizCoECY34ywJ7PXw=
+github.com/Xart3mis/GoHkarComms v0.0.0-20221003212057-d82e7686a55a h1:SfXe1BPSFybs50jfdburyVQ2U6JyOvGRFAM62HCsnbA=
+github.com/Xart3mis/GoHkarComms v0.0.0-20221003212057-d82e7686a55a/go.mod h1:+hVkKPV36sR5fNFSQ8sIyePu9DhizCoECY34ywJ7PXw=
+github.com/Xart3mis/GoHkarComms v0.0.0-20221004103029-4063e4e5a142 h1:Bm7hJdscNgAqIvch0hXk/ut33zGcpeoVxv4pDevKXnM=
+github.com/Xart3mis/GoHkarComms v0.0.0-20221004103029-4063e4e5a142/go.mod h1:+hVkKPV36sR5fNFSQ8sIyePu9DhizCoECY34ywJ7PXw=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=

@@ -3,7 +3,7 @@ module GoHkarServer
 go 1.19
 
 require (
-	github.com/Xart3mis/GoHkarComms v0.0.0-20221003211608-08a5581c36f0
+	github.com/Xart3mis/GoHkarComms v0.0.0-20221004103029-4063e4e5a142
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/fatih/color v1.13.0

@@ -1,5 +1,9 @@
 github.com/Xart3mis/GoHkarComms v0.0.0-20221003211608-08a5581c36f0 h1:kpCuuYRczE3dliEMk2pzEZIsgLcDYL70GcsTZNh/hYA=
 github.com/Xart3mis/GoHkarComms v0.0.0-20221003211608-08a5581c36f0/go.mod h1:+hVkKPV36sR5fNFSQ8sIyePu9DhizCoECY34ywJ7PXw=
+github.com/Xart3mis/GoHkarComms v0.0.0-20221003212057-d82e7686a55a h1:SfXe1BPSFybs50jfdburyVQ2U6JyOvGRFAM62HCsnbA=
+github.com/Xart3mis/GoHkarComms v0.0.0-20221003212057-d82e7686a55a/go.mod h1:+hVkKPV36sR5fNFSQ8sIyePu9DhizCoECY34ywJ7PXw=
+github.com/Xart3mis/GoHkarComms v0.0.0-20221004103029-4063e4e5a142 h1:Bm7hJdscNgAqIvch0hXk/ut33zGcpeoVxv4pDevKXnM=
+github.com/Xart3mis/GoHkarComms v0.0.0-20221004103029-4063e4e5a142/go.mod h1:+hVkKPV36sR5fNFSQ8sIyePu9DhizCoECY34ywJ7PXw=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/charmbracelet/bubbles v0.14.0 h1:DJfCwnARfWjZLvMglhSQzo76UZ2gucuHPy9jLWX45Og=
