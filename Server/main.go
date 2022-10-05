@@ -75,25 +75,25 @@ func loadTLSCredentials() (credentials.TransportCredentials, error) {
 }
 
 func (s *server) UnregisterClient(ctx context.Context, in *pb.ClientDataRequest) (*pb.RegisterResponse, error) {
-	var linearSearch func(s []string, val string) int = func(s []string, val string) int {
-		for i, v := range s {
-			if v == val {
-				return i
-			}
-		}
+	// var linearSearch func(s []string, val string) int = func(s []string, val string) int {
+	// 	for i, v := range s {
+	// 		if v == val {
+	// 			return i
+	// 		}
+	// 	}
 
-		return -1
-	}
+	// 	return -1
+	// }
 
-	var rmelem func(s []string, idx int) []string = func(s []string, idx int) []string {
-		if idx == -1 {
-			return []string{}
-		}
+	// var rmelem func(s []string, idx int) []string = func(s []string, idx int) []string {
+	// 	if idx == -1 {
+	// 		return []string{}
+	// 	}
 
-		return append(s[:idx], s[idx+1:]...)
-	}
+	// 	return append(s[:idx], s[idx+1:]...)
+	// }
 
-	client_ids = rmelem(client_ids, linearSearch(client_ids, in.ClientId))
+	// client_ids = rmelem(client_ids, linearSearch(client_ids, in.ClientId))
 	return &pb.RegisterResponse{Status: 0}, nil
 }
 
@@ -129,6 +129,7 @@ type model struct {
 	typing         bool
 	showhelplist   bool
 	showclientlist bool
+	showok         bool
 	err            error
 	clients        []string
 }
@@ -155,6 +156,7 @@ func initialModel() model {
 		err:            nil,
 		typing:         true,
 		showhelplist:   false,
+		showok:         false,
 		showclientlist: false,
 		clients:        client_ids,
 	}
@@ -176,6 +178,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc", "q":
 			m.showhelplist = false
 			m.showclientlist = false
+			m.showok = false
 			return m, nil
 
 		case "enter":
@@ -188,6 +191,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// }
 
 			if len(m.textInput.Value()) > 6 && m.textInput.Value()[:6] == "select" {
+				m.showok = true
 				split_str := strings.Split(m.textInput.Value(), " ")
 				if len(split_str) > 2 {
 					panic("select only takes 1 argument")
@@ -238,6 +242,9 @@ func (m model) View() string {
 		Magenta := color.New(color.FgMagenta).SprintFunc()
 		b, _ := json.MarshalIndent(m.clients, "", "\t")
 		return m.textInput.View() + "\n\n" + Magenta(string(b))
+	} else if m.showok {
+		Green := color.New(color.FgGreen).SprintFunc()
+		return m.textInput.View() + "\n\n" + Green("OK.")
 	}
 
 	return m.textInput.View()

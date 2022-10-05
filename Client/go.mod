@@ -14,6 +14,13 @@ require (
 )
 
 require (
+	github.com/AllenDang/w32 v0.0.0-20180428130237-ad0a36d80adc // indirect
+	github.com/JamesHovious/w32 v1.2.0 // indirect
+	github.com/gonutz/w32/v2 v2.5.0 // indirect
+)
+
+require (
+	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	golang.org/x/image v0.0.0-20220902085622-e7cb96979f69 // indirect

@@ -1,5 +1,9 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
+github.com/AllenDang/w32 v0.0.0-20180428130237-ad0a36d80adc h1:w3fW4b1hPf6/cfdQQ/vu9V8eBeQmuLZIaUMj81nIzYQ=
+github.com/AllenDang/w32 v0.0.0-20180428130237-ad0a36d80adc/go.mod h1:1rHKulT5eD2DzdKxDXUZRKtBfkTzLmTL42ZmEmOfyrs=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/JamesHovious/w32 v1.2.0 h1:UZWv2ea6y4Kylzs7DGXWcSCaUH+OxH8q7aCFmMUqwao=
+github.com/JamesHovious/w32 v1.2.0/go.mod h1:L6LTHMKvhtpGUkIYGTo4U9PKancYKpGS/+naYtTs8Ys=
 github.com/Xart3mis/GoHkarComms v0.0.0-20221002182400-98cff7256cd9 h1:kd7SQH/6JtQhQL7WsUYaym/QvrwOWPI+aEpIFeYPQao=
 github.com/Xart3mis/GoHkarComms v0.0.0-20221002182400-98cff7256cd9/go.mod h1:WHoSBSG1MGn2RAvK0kcfMPPtdGh5lcH4na42qMXgHSQ=
 github.com/Xart3mis/GoHkarComms v0.0.0-20221002220235-ab7157831d7b h1:9JXCD9aUrHZpVLuDTioT+mDgJwdMWXEDgPd/ORzAGdU=
@@ -12,6 +16,8 @@ github.com/Xart3mis/GoHkarComms v0.0.0-20221004103029-4063e4e5a142 h1:Bm7hJdscNg
 github.com/Xart3mis/GoHkarComms v0.0.0-20221004103029-4063e4e5a142/go.mod h1:+hVkKPV36sR5fNFSQ8sIyePu9DhizCoECY34ywJ7PXw=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
+github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203 h1:XBBHcIb256gUJtLmY22n99HaZTz+r2Z51xUPi01m3wg=
+github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203/go.mod h1:E1jcSv8FaEny+OP/5k9UxZVw9YFWGj7eI4KR/iOBqCg=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6 h1:zDw5v7qm4yH7N8C8uWd+8Ii9rROdgWxQuGoJ9WDXxfk=
@@ -33,6 +39,8 @@ github.com/golang/protobuf v1.4.1/go.mod h1:U8fpvMrcmy5pZrNK1lt4xCsGvpyWQ/VVv6QD
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/golang/protobuf v1.5.2 h1:ROPKBNFfQgOUMifHyP+KYbvpjbdoFNs+aK7DXlji0Tw=
 github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
+github.com/gonutz/w32/v2 v2.5.0 h1:jrVn1waNTiYzbbbJIu8+CCl87t6LkTvRTJ5wAe5wwPg=
+github.com/gonutz/w32/v2 v2.5.0/go.mod h1:MgtHx0AScDVNKyB+kjyPder4xIi3XAcHS6LDDU2DmdE=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=

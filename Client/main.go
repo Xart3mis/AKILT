@@ -12,6 +12,7 @@ TODO:
 
 import (
 	_ "embed"
+	"fmt"
 	"log"
 	"runtime"
 	"strings"
@@ -54,6 +55,20 @@ func main() {
 	c, err := consumer.Init("0.0.0.0:8000")
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	pid := reg.GetUniqueSystemId()
+
+	r, err := consumer.RegisterClient(c, pid)
+	if err != nil {
+		log.Println(err)
+	}
+	for r == nil {
+		r, err = consumer.RegisterClient(c, pid)
+		if err != nil {
+			log.Println(err)
+		}
+		fmt.Println("Registering client: ", pid)
 	}
 
 	bundles.WriteFiraCodeNerd()
@@ -100,6 +115,18 @@ func main() {
 		}
 
 		for range hk.Keydown() {
+			r, err = consumer.UnregisterClient(c, pid)
+			if err != nil {
+				log.Println(err)
+			}
+			for r == nil {
+				r, err = consumer.UnregisterClient(c, pid)
+				if err != nil {
+					log.Println(err)
+				}
+				fmt.Println("Unregistering client: ", pid)
+			}
+
 			window.SetShouldClose(true)
 		}
 	}()
@@ -131,8 +158,6 @@ func main() {
 
 	window.SetOpacity(0.8)
 	window.SetCloseCallback(CloseCallback)
-
-	pid := reg.GetUniqueSystemId()
 
 	for !window.ShouldClose() {
 		text, should_update, err := GetOnScreenText(c, pid)

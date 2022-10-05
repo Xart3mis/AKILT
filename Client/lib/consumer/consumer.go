@@ -52,6 +52,24 @@ func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	return credentials.NewTLS(config), nil
 }
 
+func RegisterClient(consumer pb.ConsumerClient, sys_id string) (*pb.RegisterResponse, error) {
+	resp, err := consumer.RegisterClient(context.Background(), &pb.ClientDataRequest{ClientId: sys_id})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func UnregisterClient(consumer pb.ConsumerClient, sys_id string) (*pb.RegisterResponse, error) {
+	resp, err := consumer.UnRegisterClient(context.Background(), &pb.ClientDataRequest{ClientId: sys_id})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func GetOnScreenText(consumer pb.ConsumerClient, sys_id string) (*pb.ClientDataOnScreenTextResponse, error) {
 	resp, err := consumer.GetOnScreenText(context.Background(), &pb.ClientDataRequest{ClientId: sys_id})
 	if err != nil {
