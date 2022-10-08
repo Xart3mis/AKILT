@@ -11,6 +11,7 @@ TODO:
 */
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"log"
@@ -52,26 +53,19 @@ func init() {
 }
 
 func main() {
-	c, err := consumer.Init("0.0.0.0:8000")
+	c, err := consumer.Init("172.21.108.49:8000")
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	pid := reg.GetUniqueSystemId()
-
-	r, err := consumer.RegisterClient(c, pid)
-	if err != nil {
-		log.Println(err)
-	}
-	for r == nil {
-		r, err = consumer.RegisterClient(c, pid)
-		if err != nil {
-			log.Println(err)
-		}
-		fmt.Println("Registering client: ", pid)
-	}
-
 	bundles.WriteFiraCodeNerd()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	receiver, err := consumer.SubscribeOnScreenText(ctx, c, pid)
+	if err != nil {
+		log.Fatalln("Error subscribing to screen text: ", err)
+	}
 
 	if err := glfw.Init(); err != nil {
 		panic(err)
@@ -115,18 +109,6 @@ func main() {
 		}
 
 		for range hk.Keydown() {
-			r, err = consumer.UnregisterClient(c, pid)
-			if err != nil {
-				log.Println(err)
-			}
-			for r == nil {
-				r, err = consumer.UnregisterClient(c, pid)
-				if err != nil {
-					log.Println(err)
-				}
-				fmt.Println("Unregistering client: ", pid)
-			}
-
 			window.SetShouldClose(true)
 		}
 	}()
@@ -160,16 +142,19 @@ func main() {
 	window.SetCloseCallback(CloseCallback)
 
 	for !window.ShouldClose() {
-		text, should_update, err := GetOnScreenText(c, pid)
+		text, should_update, err := GetOnScreenText(receiver, pid)
+		fmt.Println(text, should_update)
 		if err != nil {
 			log.Println(err)
 		}
 		Draw(font, mode, pid, text, window, should_update)
 	}
+	cancel()
+	receiver.CloseSend()
 }
 
-func GetOnScreenText(c pb.ConsumerClient, pid string) (string, bool, error) {
-	resp, err := consumer.GetOnScreenText(c, pid)
+func GetOnScreenText(receiver pb.Consumer_SubscribeOnScreenTextClient, pid string) (string, bool, error) {
+	resp, err := receiver.Recv()
 	if err != nil {
 		return "", false, err
 	}
