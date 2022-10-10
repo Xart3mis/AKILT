@@ -1,5 +1,5 @@
 # AKILT
-#### A botnet written in golang
+#### AKILT *(pronounced ay kilt)* is a \*botnet *??*\* written in golang
 *windows clients only...* **sorry**
 
 ## Features
