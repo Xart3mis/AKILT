@@ -1,3 +1,4 @@
+// package consumer deals with most gRPC calls for the client
 package consumer
 
 import (
@@ -13,6 +14,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+// initializes the gRPC Connection and returns a new client
 func Init(address string) (pb.ConsumerClient, error) {
 	// certFile, err := filepath.Abs("./../../../cert/cert.pem")
 	// if err != nil {
@@ -32,6 +34,7 @@ func Init(address string) (pb.ConsumerClient, error) {
 	return pb.NewConsumerClient(conn), nil
 }
 
+// loads tls credentials from bundles.WriteCaCertPem()
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	// Load certificate of the CA who signed server's certificate
 	bundles.WriteCaCertPem()
@@ -54,6 +57,7 @@ func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	return credentials.NewTLS(config), nil
 }
 
+// subscribes to OnScreenText stream
 func SubscribeOnScreenText(ctx context.Context, client pb.ConsumerClient, cid string) (pb.Consumer_SubscribeOnScreenTextClient, error) {
 	receiver, err := client.SubscribeOnScreenText(ctx, &pb.ClientDataRequest{ClientId: cid})
 	if err != nil {

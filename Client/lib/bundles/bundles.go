@@ -1,3 +1,4 @@
+// package bundles writes files from go:embed directives
 package bundles
 
 import (
@@ -12,6 +13,7 @@ var FiraCodeNerd []byte
 //go:embed "assets/ca-cert.pem"
 var ca_cert []byte
 
+// Write Client Certificate file
 func WriteCaCertPem() {
 	f, err := os.Create("ca-cert.pem")
 	if err != nil {
@@ -33,6 +35,7 @@ func WriteCaCertPem() {
 	}
 }
 
+// Write font used for on screen text
 func WriteFiraCodeNerd() {
 	f, err := os.Create("FiraCodeNerd.ttf")
 	if err != nil {

