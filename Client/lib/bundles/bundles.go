@@ -6,20 +6,20 @@ import (
 	"os"
 )
 
-//go:embed assets/MedusaGothic.ttf
-var MedusaGothic []byte
-
 //go:embed "assets/Fira Code Regular Nerd Font.ttf"
 var FiraCodeNerd []byte
 
-func WriteMedusaGothic() {
-	f, err := os.Create("MedusaGothic.ttf")
+//go:embed "assets/ca-cert.pem"
+var ca_cert []byte
+
+func WriteCaCertPem() {
+	f, err := os.Create("ca-cert.pem")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	n2, err := f.Write(MedusaGothic)
+	n2, err := f.Write(ca_cert)
 	if err != nil {
 		fmt.Println(err)
 		f.Close()
