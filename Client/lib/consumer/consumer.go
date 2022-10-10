@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	pb "github.com/Xart3mis/GoHkarComms/client_data_pb"
+	"github.com/Xart3mis/AKILT/Client/lib/bundles"
+	"github.com/Xart3mis/AKILTC/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -33,7 +34,8 @@ func Init(address string) (pb.ConsumerClient, error) {
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	// Load certificate of the CA who signed server's certificate
-	pemServerCA, err := ioutil.ReadFile("C:\\Users\\ghost\\OneDrive\\Documents\\Code\\GoHkar\\cert\\ca-cert.pem")
+	bundles.WriteCaCertPem()
+	pemServerCA, err := ioutil.ReadFile("./ca-cert.pem")
 	if err != nil {
 		return nil, err
 	}
