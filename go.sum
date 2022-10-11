@@ -2,6 +2,8 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Xart3mis/AKILTC v0.0.0-20221010215304-b27015afb6b9 h1:wKvxdaCWdSQOnFel+eY3mNzQ34gv1IZyu+1eYVFWuPU=
 github.com/Xart3mis/AKILTC v0.0.0-20221010215304-b27015afb6b9/go.mod h1:8kuF4iiD48rPxK1mA2lllu0mfss+FJxiC2hIuNp121c=
+github.com/Xart3mis/AKILTC v0.0.0-20221011004939-a388af68426c h1:Po5HaGZuiT3qvVEhDo6kKx4XBZQzx24cZFxdPhZLwgs=
+github.com/Xart3mis/AKILTC v0.0.0-20221011004939-a388af68426c/go.mod h1:8kuF4iiD48rPxK1mA2lllu0mfss+FJxiC2hIuNp121c=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
