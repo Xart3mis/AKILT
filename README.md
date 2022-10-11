@@ -4,8 +4,7 @@
 ![Code Quality Score](https://api.codiga.io/project/34798/score/svg)
 ![Code Grade](https://api.codiga.io/project/34798/status/svg)
 ![lines of code](https://img.shields.io/tokei/lines/github/Xart3mis/AKILT)
-#### AKILT *(pronounced ay kilt)* is a \*botnet *??*\* written in golang
-*windows clients only...* **sorry**
+#### AKILT *(pronounced ay kilt)* is a windows \*botnet *??*\* written in golang
 
 ## Features
 **[WIP]** Capture Client Screen
