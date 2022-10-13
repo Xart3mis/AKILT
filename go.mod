@@ -3,12 +3,13 @@ module github.com/Xart3mis/AKILT
 go 1.19
 
 require (
-	github.com/Xart3mis/AKILTC v0.0.0-20221011004939-a388af68426c
+	github.com/Xart3mis/AKILTC v0.0.0-20221013130436-936b8cfc0898
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/fatih/color v1.13.0
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220806181222-55e207c401ad
+	github.com/icrowley/fake v0.0.0-20220625154756-3c7517006344
 	github.com/magodo/textinput v0.0.0-20210921034852-7db7068d3969
 	github.com/moutend/go-hook v0.1.0
 	github.com/nullboundary/glfont v0.0.0-20220309200611-a732e1465f7d
@@ -18,8 +19,15 @@ require (
 )
 
 require (
+	github.com/corpix/uarand v0.0.0-20170723150923-031be390f409 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+
+require (
 	github.com/atotto/clipboard v0.1.4 // indirect
-	github.com/charmbracelet/bubbles v0.14.0 // indirect
+	github.com/charmbracelet/bubbles v0.14.0
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
