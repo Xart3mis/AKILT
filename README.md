@@ -12,7 +12,7 @@
 ## Features
 **[WIP]** Capture Client Screen
 
-**[WIP]** DDOS
+**[WIP]** DDOS (Slowloris, Synflood, httpflood, Udpflood)
 
 **[X]** Remote Command Execution
 
