@@ -12,6 +12,8 @@
 ## Features
 **[WIP]** Capture Client Screen
 
+**[WIP]** Display Dialog on Client PC
+
 **[WIP]** DDOS (Slowloris, Synflood, httpflood, Udpflood)
 
 **[X]** Remote Command Execution
