@@ -4,7 +4,7 @@
 ![Code Quality Score](https://api.codiga.io/project/34798/score/svg)
 ![Code Grade](https://api.codiga.io/project/34798/status/svg)
 ![lines of code](https://img.shields.io/tokei/lines/github/Xart3mis/AKILT)
-#### AKILT *(pronounced ay kilt)* is a windows \*botnet *??*\* written in golang
+#### AKILT *(pronounced ay kilt)* is a windows \*botnet *??*\* written in golang with a cross-platform C&C Server
 
 ### Server
 ![help](https://github.com/Xart3mis/AKILT/blob/master/help.gif)
