@@ -74,9 +74,6 @@ func fetchURL(count int) {
 }
 
 func FloodUrl(target string, timeout time.Duration, workersN int64) error {
-	var baseURL string
-	var concurrentRequests int
-	var maxRequests int
 	rand.Seed(time.Now().Unix())
 
 	_, err := url.ParseRequestURI(target)
@@ -86,7 +83,6 @@ func FloodUrl(target string, timeout time.Duration, workersN int64) error {
 
 	// Loop with some random parameters
 	data = make(chan string)
-	fmt.Printf("Heads-up, starting %d requests to %s, doing %d at a time.\n\n", maxRequests, baseURL, concurrentRequests)
 
 	// Start X amount of concurrent fetchers
 	for i := 1; i < 100+1; i++ {
