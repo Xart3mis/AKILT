@@ -3,7 +3,7 @@ module github.com/Xart3mis/AKILT
 go 1.19
 
 require (
-	github.com/Xart3mis/AKILTC v0.0.0-20221013130436-936b8cfc0898
+	github.com/Xart3mis/AKILTC v0.0.0-20221013154430-a05923842152
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/fatih/color v1.13.0
@@ -19,9 +19,18 @@ require (
 )
 
 require (
+	github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
+	github.com/akavel/rsrc v0.10.2 // indirect
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
+	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/corpix/uarand v0.0.0-20170723150923-031be390f409 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dchest/jsmin v0.0.0-20220218165748-59f39799265f // indirect
+	github.com/josephspurrier/goversioninfo v1.4.0 // indirect
+	github.com/ncruces/zenity v0.9.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
+	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -47,4 +56,5 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20221010155953-15ba04fc1c0e // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
