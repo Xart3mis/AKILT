@@ -6,10 +6,13 @@
 ![lines of code](https://img.shields.io/tokei/lines/github/Xart3mis/AKILT)
 #### AKILT *(pronounced ay kilt)* is a windows \*botnet *??*\* written in golang
 
+### Server
+![help](https://github.com/Xart3mis/AKILT/blob/master/help.gif)
+
 ## Features
 **[WIP]** Capture Client Screen
 
-**[WIP]** DDOS
+**[WIP]** DDOS (Slowloris, Synflood, httpflood, Udpflood)
 
 **[X]** Remote Command Execution
 
