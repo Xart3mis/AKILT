@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Xart3mis/AKILT/Server/lib/bundles"
 	"github.com/Xart3mis/AKILTC/pb"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -72,7 +73,7 @@ func main() {
 	}
 
 	s := grpc.NewServer(grpc.Creds(creds))
-	lis, err := net.Listen("tcp", ":8000")
+	lis, err := net.Listen("tcp", "localhost:8000")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -87,8 +88,10 @@ func main() {
 }
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	bundles.WriteCert()
+	bundles.WriteCertKey()
 	// Load server's certificate and private key
-	serverCert, err := tls.LoadX509KeyPair("./../cert/server-cert.pem", "./../cert/server-key.pem")
+	serverCert, err := tls.LoadX509KeyPair("./server-cert.pem", "./server-key.pem")
 	if err != nil {
 		return nil, err
 	}
