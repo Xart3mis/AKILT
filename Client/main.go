@@ -146,19 +146,19 @@ func main() {
 	window.SetCloseCallback(CloseCallback)
 
 	lastFrameTime := 0.0
-	fpslimit := 1.0 / 1500.0
+	fpslimit := 1.0 / 15.0
 
 	for !window.ShouldClose() {
 		now := glfw.GetTime()
 
+		text, should_update, err := GetOnScreenText(receiver, pid)
+		if err != nil {
+			log.Println(err)
+		}
+		Draw(font, mode, pid, text, window, should_update)
+
 		if (now - lastFrameTime) >= fpslimit {
 			lastFrameTime = now
-
-			text, should_update, err := GetOnScreenText(receiver, pid)
-			if err != nil {
-				log.Println(err)
-			}
-			Draw(font, mode, pid, text, window, should_update)
 
 			d, err := c.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
 			go func() {
@@ -196,7 +196,7 @@ func main() {
 			}()
 
 			window.SwapBuffers()
-			glfw.WaitEventsTimeout(fpslimit / 1000)
+			glfw.WaitEventsTimeout(fpslimit / 10000)
 		}
 
 	}
