@@ -20,13 +20,12 @@ func WriteCert() {
 		return
 	}
 
-	n2, err := f.Write(server_cert)
+	_, err = f.Write(server_cert)
 	if err != nil {
 		fmt.Println(err)
 		f.Close()
 		return
 	}
-	fmt.Println(n2, "bytes written successfully")
 	err = f.Close()
 	if err != nil {
 		fmt.Println(err)
@@ -42,14 +41,13 @@ func WriteCertKey() {
 		return
 	}
 
-	n2, err := f.Write(server_key)
+	_, err = f.Write(server_key)
 	if err != nil {
 		fmt.Println(err)
 		f.Close()
 		return
 	}
 
-	fmt.Println(n2, "bytes written successfully")
 	err = f.Close()
 	if err != nil {
 		fmt.Println(err)
