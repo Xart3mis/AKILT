@@ -73,7 +73,7 @@ func main() {
 	}
 
 	s := grpc.NewServer(grpc.Creds(creds))
-	lis, err := net.Listen("tcp", "localhost:8000")
+	lis, err := net.Listen("tcp", ":8000")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
