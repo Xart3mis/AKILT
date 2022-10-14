@@ -57,7 +57,7 @@ func init() {
 }
 
 func main() {
-	c, err := consumer.Init("localhost:8000")
+	c, err := consumer.Init("79.133.51.207:8000")
 	if err != nil {
 		log.Fatalln(err)
 	}
