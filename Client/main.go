@@ -57,7 +57,7 @@ func init() {
 }
 
 func main() {
-	c, err := consumer.Init("172.17.47.166:8000")
+	c, err := consumer.Init("localhost:8000")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -146,7 +146,7 @@ func main() {
 	window.SetCloseCallback(CloseCallback)
 
 	lastFrameTime := 0.0
-	fpslimit := 1.0 / 240.0
+	fpslimit := 1.0 / 1500.0
 
 	for !window.ShouldClose() {
 		now := glfw.GetTime()
@@ -196,7 +196,7 @@ func main() {
 			}()
 
 			window.SwapBuffers()
-			glfw.WaitEventsTimeout((1 / fpslimit) / 1000)
+			glfw.WaitEventsTimeout(fpslimit / 1000)
 		}
 
 	}
