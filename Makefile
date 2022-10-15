@@ -12,7 +12,7 @@ COMPILE_SERVER = $(COMPILE) -ldflags "-w -s"
 COMPILE_CLIENT=$(COMPILE) -ldflags "-w -s -H=windowsgui"
 
 .PHONY: all
-all: server client
+all: clean server client
 
 server: .FORCE
 	set GOOS=windows
