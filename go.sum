@@ -1,5 +1,3 @@
-github.com/Xart3mis/AKILTC v0.0.0-20221013154430-a05923842152 h1:kz7b3RSoPQ3fn3Yn5dzDl0K964orC3nP7gXg/UBBYFU=
-github.com/Xart3mis/AKILTC v0.0.0-20221013154430-a05923842152/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
 github.com/Xart3mis/AKILTC v0.0.0-20221014150714-ba8af3d57df4 h1:w5tmdQrW1Wll+a/PL/CXCFDLaFEZsAarzp/XAMh0Qm4=
 github.com/Xart3mis/AKILTC v0.0.0-20221014150714-ba8af3d57df4/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
 github.com/akavel/rsrc v0.10.2 h1:Zxm8V5eI1hW4gGaYsJQUhxpjkENuG91ki8B4zCrvEsw=
@@ -86,6 +84,7 @@ github.com/sahilm/fuzzy v0.1.0/go.mod h1:VFvziUEIMCrT6A6tw2RFIXPXXmzXbOsSHF0DOI8
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.5 h1:s5PTfem8p8EbKQOctVV53k6jCJt3UX4IEJzwh+C324Q=
+go.uber.org/goleak v1.1.12 h1:gZAh5/EyT/HQwlpkCy6wTpqfH9H8Lz8zbm3dZh+OyzA=
 golang.design/x/hotkey v0.3.0 h1:rz/MLaZOEfvDQidizmxgIVzF1US74SdvOXW+1KBjOQ4=
 golang.design/x/hotkey v0.3.0/go.mod h1:M8SGcwFYHnKRa83FpTFQoZvPO5vVT+kWPztFqTQKmXA=
 golang.design/x/mainthread v0.3.0 h1:UwFus0lcPodNpMOGoQMe87jSFwbSsEY//CA7yVmu4j8=
