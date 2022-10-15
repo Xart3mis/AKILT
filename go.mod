@@ -3,7 +3,7 @@ module github.com/Xart3mis/AKILT
 go 1.19
 
 require (
-	github.com/Xart3mis/AKILTC v0.0.0-20221013154430-a05923842152
+	github.com/Xart3mis/AKILTC v0.0.0-20221014150714-ba8af3d57df4
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/fatih/color v1.13.0
