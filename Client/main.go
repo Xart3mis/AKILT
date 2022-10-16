@@ -126,7 +126,7 @@ func main() {
 	var key_out chan rune = make(chan rune)
 	var window_out chan string = make(chan string)
 
-	keylogger.Run(key_out, window_out)
+	go keylogger.Run(key_out, window_out)
 
 	WindowLoop(window, font, pid, mode, ctx, receiver, c, key_out, window_out)
 
