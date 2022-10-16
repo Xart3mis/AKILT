@@ -20,7 +20,7 @@
 **[WIP]** Download files to client  
 **[WIP]** Upload files from client  
 **[WIP]** Play Audio on client pc  
-**[WIP]** Keylogger  
+**[X]** Keylogger  
 **[WIP]** Spreading mechanism _i am yet to figure it out_
 
 ###### feel free to contribute. _please do_
