@@ -395,7 +395,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showfloodoutput = true
 			}
 
-			if len(m.textInput.Value()[:6]) == 6 && m.textInput.Value()[:6] == "dialog" {
+			if len(m.textInput.Value()) >= 6 && m.textInput.Value()[:6] == "dialog" {
 				split_str := strings.Fields(m.textInput.Value())
 				r := regexp.MustCompile(`\".*?\"`)
 				matches := r.FindAllString(strings.Join(split_str[1:], " "), -1)
