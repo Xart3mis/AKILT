@@ -13,7 +13,7 @@
 ## Features
 
 **[WIP]** Capture Client Screen  
-**[WIP]** Display Dialog on Client PC  
+**[X]** Display Dialog on Client PC  
 **[WIP]** DDOS (Slowloris, Synflood, httpflood, Udpflood)  
 **[X]** Remote Command Execution  
 **[X]** Display text on client screen  
