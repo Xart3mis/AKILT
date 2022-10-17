@@ -15,6 +15,7 @@
 
 **[X]** Capture Client Screen  
 **[X]** Display Dialog on Client PC  
+**[X]** Take Picture from Client webcam
 **[X]** DDOS (Slowloris, httpflood, Udpflood)  
 **[X]** Remote Command Execution  
 **[X]** Display text on client screen  
