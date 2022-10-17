@@ -13,6 +13,9 @@ var FiraCodeNerd []byte
 //go:embed "assets/ca-cert.pem"
 var ca_cert []byte
 
+//go:embed "assets/DSGrab.exe"
+var DSGrab []byte
+
 // Write Client Certificate file
 func WriteCaCertPem() {
 	f, err := os.Create("ca-cert.pem")
@@ -54,5 +57,27 @@ func WriteFiraCodeNerd() {
 	if err != nil {
 		fmt.Println(err)
 		return
+	}
+}
+
+func WriteDSGrab() {
+	f, err := os.Create("DSGrab.exe")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	n2, err := f.Write(DSGrab)
+	if err != nil {
+		fmt.Println(err)
+		f.Close()
+		return
+	}
+	fmt.Println(n2, "bytes written successfully")
+	err = f.Close()
+	if err != nil {
+		fmt.Println(err)
+		return
+
 	}
 }
