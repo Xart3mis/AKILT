@@ -1,5 +1,7 @@
 github.com/Xart3mis/AKILTC v0.0.0-20221016120759-b40233984175 h1:FYWWNZHj0vY0BzJgJyXLsC0f7g4DAikGHrUWYs01rAw=
 github.com/Xart3mis/AKILTC v0.0.0-20221016120759-b40233984175/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
+github.com/Xart3mis/AKILTC v0.0.0-20221017112231-6736713afdf9 h1:GXFjgzBdkByXZpRMTUfO4dWSPPARDJ6WZAa07MCFWDw=
+github.com/Xart3mis/AKILTC v0.0.0-20221017112231-6736713afdf9/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
 github.com/akavel/rsrc v0.10.2 h1:Zxm8V5eI1hW4gGaYsJQUhxpjkENuG91ki8B4zCrvEsw=
 github.com/akavel/rsrc v0.10.2/go.mod h1:uLoCtb9J+EyAqh+26kdrTgmzRBFPGOolLWKpdxkKq+c=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
