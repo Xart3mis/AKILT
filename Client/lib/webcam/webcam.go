@@ -25,7 +25,7 @@ func CaptureWebcam() []byte {
 		log.Println(err)
 	}
 
-	var b []byte
+	var b []byte = make([]byte, 6000000)
 	file.Read(b)
 
 	return b
