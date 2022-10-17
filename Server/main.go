@@ -552,7 +552,6 @@ func (m model) View() string {
 		return m.textInput.View() + "\n\n" + red("usage: flood [url] [time limit] [worker count] [flood type] "+"flood type can be (slowloris, httpflood, synflood, udpflood)\n")
 	}
 	if m.showfloodoutput {
-		(&m).showfloodoutput = false
 		return m.textInput.View()
 	}
 	if m.showdialogoutput {
