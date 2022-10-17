@@ -1,9 +1,11 @@
 github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc h1:7D+Bh06CRPCJO3gr2F7h1sriovOZ8BMhca2Rg85c2nk=
 github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/Xart3mis/AKILTC v0.0.0-20221017112231-6736713afdf9 h1:GXFjgzBdkByXZpRMTUfO4dWSPPARDJ6WZAa07MCFWDw=
-github.com/Xart3mis/AKILTC v0.0.0-20221017112231-6736713afdf9/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
+github.com/Xart3mis/AKILTC v0.0.0-20221017170908-5e53160efaab h1:TxExHX7F0SvtaPuxCRaSoHmKRHua4ChsFW7T+KJYlu0=
+github.com/Xart3mis/AKILTC v0.0.0-20221017170908-5e53160efaab/go.mod h1:grJ5bPLyHKrr9BMgPzqq1OdIinS0lDKIbgSA3BZ+l1M=
 github.com/akavel/rsrc v0.10.2 h1:Zxm8V5eI1hW4gGaYsJQUhxpjkENuG91ki8B4zCrvEsw=
 github.com/akavel/rsrc v0.10.2/go.mod h1:uLoCtb9J+EyAqh+26kdrTgmzRBFPGOolLWKpdxkKq+c=
+github.com/amenzhinsky/go-memexec v0.7.0 h1:BAoex/mFSJiPJQkJinBmT2vgkpUZBvJngjbhEhFrRa4=
+github.com/amenzhinsky/go-memexec v0.7.0/go.mod h1:mQNWoiLTmL4+AUb/y3KkDE7xh7qnEO/as+rkLZRqXYg=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/charmbracelet/bubbles v0.14.0 h1:DJfCwnARfWjZLvMglhSQzo76UZ2gucuHPy9jLWX45Og=
