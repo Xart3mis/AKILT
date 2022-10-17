@@ -12,12 +12,14 @@ require (
 	github.com/magodo/textinput v0.0.0-20210921034852-7db7068d3969
 	github.com/moutend/go-hook v0.1.0
 	github.com/nullboundary/glfont v0.0.0-20220309200611-a732e1465f7d
+	github.com/vova616/screenshot v0.0.0-20220801010501-56c10359473c
 	golang.design/x/hotkey v0.3.0
 	golang.org/x/sys v0.0.0-20221010170243-090e33056c14
 	google.golang.org/grpc v1.50.0
 )
 
 require (
+	github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc // indirect
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/charmbracelet/lipgloss v0.6.0 // indirect
 	github.com/corpix/uarand v0.0.0-20170723150923-031be390f409 // indirect
