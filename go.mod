@@ -31,7 +31,6 @@ require (
 )
 
 require (
-	github.com/amenzhinsky/go-memexec v0.7.0
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/charmbracelet/bubbles v0.14.0
 	github.com/containerd/console v1.0.3 // indirect
