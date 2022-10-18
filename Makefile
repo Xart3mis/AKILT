@@ -55,8 +55,6 @@ client: .FORCE
 
 	go env -w GOARCH=amd64
 	$(COMPILE_CLIENT) -o $(CLIENT_BIN)client-windows-amd64.exe $(CLIENT_DIR)
-	
-	upx $(CLIENT_BIN)*.exe
 
 clean:
 	del /Q $(CLIENT_BIN)*
