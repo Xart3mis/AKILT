@@ -15,51 +15,47 @@ COMPILE_CLIENT=$(COMPILE) -ldflags "-w -s -H=windowsgui"
 all: clean server client
 
 server: .FORCE
-	set GOOS=windows
+	go env -w GOOS=windows
 	
-	set GOARCH=amd64
+	go env -w GOARCH=amd64
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-windows-amd64.exe $(SERVER_DIR)
-	set GOARCH=386
+	go env -w GOARCH=386
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-windows-386.exe $(SERVER_DIR)
-	set GOARCH=arm64
+	go env -w GOARCH=arm64
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-windows-arm64.exe $(SERVER_DIR)	
-	set GOARCH=arm
+	go env -w GOARCH=arm
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-windows-arm.exe $(SERVER_DIR)
 	
 	
-	set GOOS=darwin
+	go env -w GOARCH=amd64
+	go env -w GOOS=darwin
 	
-	set GOARCH=arm64
-	$(COMPILE_SERVER) -o $(SERVER_BIN)server-darwin-arm64 $(SERVER_DIR)
-	set GOARCH=amd64
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-darwin-amd64 $(SERVER_DIR)
 
+	go env -w GOARCH=arm64
+	$(COMPILE_SERVER) -o $(SERVER_BIN)server-darwin-arm64 $(SERVER_DIR)
 
-	set GOOS=linux
+
+	go env -w GOOS=linux
 	
-	set GOARCH=amd64
+	go env -w GOARCH=amd64
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-linux-amd64 $(SERVER_DIR)
-	set GOARCH=386
+	go env -w GOARCH=386
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-linux-386 $(SERVER_DIR)
-	set GOARCH=arm
+	go env -w GOARCH=arm
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-linux-arm $(SERVER_DIR)
-	set GOARCH=arm64
+	go env -w GOARCH=arm64
 	$(COMPILE_SERVER) -o $(SERVER_BIN)server-linux-arm64 $(SERVER_DIR)
 	
-	upx $(SERVER_BIN)*.exe
+	upx $(SERVER_BIN)server-windows-amd64.exe
+	upx $(SERVER_BIN)server-windows-386.exe
 
 client: .FORCE
-	set GOOS=windows
+	go env -w GOOS=windows
 
-	set GOARCH=amd64
+	go env -w GOARCH=amd64
 	$(COMPILE_CLIENT) -o $(CLIENT_BIN)client-windows-amd64.exe $(CLIENT_DIR)
-	set GOARCH=386
-	$(COMPILE_CLIENT) -o $(CLIENT_BIN)client-windows-386.exe $(CLIENT_DIR)
-	set GOARCH=arm
-	$(COMPILE_CLIENT) -o $(CLIENT_BIN)client-windows-arm.exe $(CLIENT_DIR)
-	set GOARCH=arm64
-	$(COMPILE_CLIENT) -o $(CLIENT_BIN)client-windows-arm64.exe $(CLIENT_DIR)
-
+	
 	upx $(CLIENT_BIN)*.exe
 
 clean:
