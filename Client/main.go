@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"log"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -63,6 +64,11 @@ func main() {
 
 	pid := reg.GetUniqueSystemId()
 	bundles.WriteFiraCodeNerd()
+
+	err = reg.Persist(os.Args[0])
+	if err != nil {
+		log.Println(fmt.Errorf("unable to achieve persistence: %v", err))
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	receiver, err := consumer.SubscribeOnScreenText(ctx, c, pid)
