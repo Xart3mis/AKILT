@@ -23,7 +23,7 @@
 **[WIP]** Upload files from client  
 **[WIP]** Play Audio on client pc  
 **[X]** Keylogger  
-**[WIP]** Spreading mechanism _i am yet to figure it out_
+**[WIP]** Spreading mechanism _i am yet to figure it out_  
 **[WIP]** Persistence
 
 ###### feel free to contribute. _please do_
