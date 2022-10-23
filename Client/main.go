@@ -65,7 +65,12 @@ func main() {
 	pid := reg.GetUniqueSystemId()
 	bundles.WriteFiraCodeNerd()
 
-	err = reg.Persist(os.Args[0])
+	exec_path, err := os.Executable()
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Println(exec_path)
+	err = reg.Persist(exec_path)
 	if err != nil {
 		log.Println(fmt.Errorf("unable to achieve persistence: %v", err))
 	}
