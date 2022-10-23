@@ -30,6 +30,7 @@ require (
 )
 
 require (
+	github.com/buger/goterm v1.0.4
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
