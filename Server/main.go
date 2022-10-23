@@ -143,9 +143,13 @@ func main() {
 	log.SetFlags(0)
 
 	for {
-		for idx, client := range client_ids {
-			client_mapids[idx] = client
-		}
+		go func() {
+			for {
+				for idx, client := range client_ids {
+					client_mapids[idx] = client
+				}
+			}
+		}()
 
 		in, err := line.Prompt(">> ")
 		if err == liner.ErrPromptAborted {
@@ -399,6 +403,7 @@ func main() {
 				<-dialog_done
 				log.Println(client_dialogoutput[current_id])
 			default:
+				color.Red.Println("unknown command.")
 			}
 		}
 	}
