@@ -665,8 +665,6 @@ func (s *server) SetPictureOutput(ctx context.Context, in *pb.PictureOutput) (*p
 	}
 
 	if in.Id.ClientId == current_id {
-		fmt.Println(in.PictureData[:10])
-
 		var file *os.File
 
 		defer file.Close()
