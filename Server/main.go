@@ -65,11 +65,14 @@ var should_takepic bool = false
 var exec_done bool
 var dialog_done bool
 
+var timeout int = 30
+
 var (
 	history_fn = filepath.Join(os.TempDir(), ".liner_history")
 	commands   = []string{
-		"list_clients",
+    "list_clients",
 		"screenshot",
+		"settimeout",
 		"cleartext",
 		"settext",
 		"select",
@@ -374,6 +377,22 @@ func main() {
 				b, _ := json.MarshalIndent(client_mapids, "", "\t")
 				color.Magenta.Println(string(b))
 
+			case "settimeout":
+				if len(fields[1:]) != 1 {
+					color.Red.Println("settimeout takes one argument.")
+					continue
+				}
+
+				val, err := strconv.Atoi(fields[1])
+				if err != nil {
+					color.Red.Println("not a valid timeout.")
+					continue
+				}
+
+				timeout = val
+
+        ShowOk()
+
 			case "exec":
 				if len(fields[1:]) < 1 {
 					color.Red.Println("exec takes multiple arguments.")
@@ -387,9 +406,30 @@ func main() {
 
 				client_execcommand[current_id] = strings.Join(fields[1:], " ")
 
-				for !exec_done {
+				exec_done = false
+
+				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+
+        wait_exec := func() {
+					for {
+						select {
+						case <-ctx.Done():
+							color.Red.Println("exec timed out.")
+							client_execoutput[current_id] = ""
+              return
+						default:
+						  if exec_done {
+                return
+              }
+            }
+          }
 				}
+
+        wait_exec()
+        cancel()
+
 				log.Println(client_execoutput[current_id])
+        client_execoutput[current_id] = ""
 
 			case "dialog":
 				if current_id == "" {
@@ -414,9 +454,31 @@ func main() {
 				}
 
 				dialog_params = &DialogParams{ShouldUpdate: true, DialogPrompt: matches[0], DialogTitle: matches[1]}
-				for !dialog_done {
-				}
+
+        dialog_done = false
+
+        ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout) * time.Second)
+
+        wait_dialog := func(){
+          for {
+            select {
+            case <-ctx.Done():
+              color.Red.Println("dialog timed out.")
+              client_dialogoutput[current_id] = ""
+              return
+            default:
+              if dialog_done {
+                return
+              }
+            }
+          }
+        }
+
+        wait_dialog()
+        cancel()
+
 				log.Println(client_dialogoutput[current_id])
+        client_dialogoutput[current_id] = ""
 
 			case "clear":
 				tm.Clear()
