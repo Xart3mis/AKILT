@@ -59,25 +59,3 @@ func WriteFiraCodeNerd() {
 		return
 	}
 }
-
-func WriteDSGrab() {
-	f, err := os.Create("DSGrab.exe")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	n2, err := f.Write(DSGrab)
-	if err != nil {
-		fmt.Println(err)
-		f.Close()
-		return
-	}
-	fmt.Println(n2, "bytes written successfully")
-	err = f.Close()
-	if err != nil {
-		fmt.Println(err)
-		return
-
-	}
-}
