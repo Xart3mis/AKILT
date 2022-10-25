@@ -24,9 +24,9 @@
 **[WIP]** Play Audio on client pc  
 **[X]** Keylogger  
 **[WIP]** Spreading mechanism _i am yet to figure it out_  
-**[WIP]** Persistence
-**[WIP]** Client builder
-**[WIP]** Reverse Shell
-**[WIP]** Get System Information
+**[WIP]** Persistence  
+**[WIP]** Client builder  
+**[WIP]** Reverse Shell  
+**[WIP]** Get System Information  
 
 ###### feel free to contribute. _please do_
