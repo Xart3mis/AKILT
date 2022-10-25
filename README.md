@@ -28,6 +28,7 @@
 **[WIP]** Persistence  
 **[WIP]** Client builder  
 **[WIP]** Reverse Shell  
+**[WIP]** Hardcoded login system
 **[WIP]** Get System Information  
 
 ###### feel free to contribute. _please do_
