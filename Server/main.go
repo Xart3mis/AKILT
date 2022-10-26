@@ -154,26 +154,16 @@ func main() {
 
 	for {
 		go func() {
-			for {
-				for idx, client := range client_ids {
-					client_mapids[idx] = client
-				}
-			}
-		}()
-
-		go func() {
 			if len(connect_header) > 0 {
 				color.Green.Println(tm.ResetLine(connect_header))
 				connect_header = ""
 				tm.Flush()
-				tm.MoveCursorDown(2)
 			}
 
 			if len(disconnect_header) > 0 {
 				color.Red.Println(tm.ResetLine(disconnect_header))
 				disconnect_header = ""
 				tm.Flush()
-				tm.MoveCursorDown(2)
 			}
 		}()
 
@@ -806,10 +796,27 @@ func (s *server) SetPictureOutput(ctx context.Context, in *pb.PictureOutput) (*p
 
 func (s *server) RegisterClient(ctx context.Context, in *pb.RegisterData) (*pb.Void, error) {
 	connect_header = "\nclient connected with ip:" + in.GetIp() + " and pid:" + in.GetId().ClientId
+
+	if !Contains(client_ids, in.Id.ClientId) {
+		client_ids = append(client_ids, in.Id.ClientId)
+	}
+
+	for i, val := range client_ids {
+		client_mapids[i] = val
+	}
+
 	return &pb.Void{}, nil
 }
 
 func (s *server) UnregisterClient(ctx context.Context, in *pb.RegisterData) (*pb.Void, error) {
 	disconnect_header = "\nclient disconnected with ip:" + in.GetIp() + " and pid:" + in.GetId().ClientId
+
+	for i, other := range client_ids {
+		if other == in.Id.ClientId {
+			delete(client_mapids, i)
+			client_ids = append(client_ids[:i], client_ids[i+1:]...)
+		}
+	}
+
 	return &pb.Void{}, nil
 }
