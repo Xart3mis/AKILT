@@ -29,5 +29,6 @@
 **[WIP]** Reverse Shell  
 **[WIP]** Hardcoded login system  
 **[WIP]** Get System Information  
+**[WIP]** Retrieve user password hashes  
 
 ###### feel free to contribute. _please do_
