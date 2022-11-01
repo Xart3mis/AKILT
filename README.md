@@ -25,7 +25,7 @@
 **[X]** Keylogger  
 **[WIP]** Spreading mechanism _i am yet to figure it out_  
 **[WIP]** Persistence  
-**[WIP]** [Bot and C2 builder](github.com/Xart3mis/akiltbuilder/)  
+**[WIP]** [Bot and C2 builder](https://github.com/Xart3mis/akiltbuilder/)  
 **[WIP]** Reverse Shell  
 **[WIP]** Hardcoded login system  
 **[WIP]** Get System Information  
