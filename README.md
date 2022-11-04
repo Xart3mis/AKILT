@@ -32,7 +32,11 @@ make
 ```  
 
 **NOTE: Compiling the client only works on windows 64-bit**  
-###### If you'd like to compile the client or server seperately: 
+###### If you'd like to compile the client or server seperately. Run the following commands.:
+```bash
+make clean
+```  
+
 instead of running `make` directly run `make client` or `make server`  
 
 
