@@ -13,6 +13,7 @@ require (
 	github.com/peterh/liner v1.2.2
 	github.com/schollz/progressbar/v3 v3.11.0
 	github.com/vova616/screenshot v0.0.0-20220801010501-56c10359473c
+	gocv.io/x/gocv v0.31.0
 	golang.design/x/hotkey v0.3.0
 	golang.org/x/sys v0.0.0-20221010170243-090e33056c14
 	google.golang.org/grpc v1.50.0
@@ -27,7 +28,6 @@ require (
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
-	gocv.io/x/gocv v0.31.0 // indirect
 )
 
 require (
@@ -40,7 +40,7 @@ require (
 	golang.org/x/image v0.0.0-20220902085622-e7cb96979f69 // indirect
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/text v0.3.8 // indirect
 	google.golang.org/genproto v0.0.0-20221010155953-15ba04fc1c0e // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )
